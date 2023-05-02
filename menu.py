@@ -14,6 +14,8 @@ class Menu:
         self.root = tk.Tk()
 
 
+
+
 def motion(event):
     x, y = event.x, event.y
     print(x, y)
