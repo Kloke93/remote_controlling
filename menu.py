@@ -15,9 +15,10 @@ class MainMenu:
         :param master: tkinter Tk instance (root)
         """
         self.master = master
-        self.master.title("RemoteControlling")                           # name of the program
+        self.master.resizable(width=False, height=False)                    # not resizable
+        self.master.title("RemoteControlling")                              # name of the program
         try:
-            self.master.iconbitmap("logo.ico")                           # program logo
+            self.master.iconbitmap("logo.ico")                              # program logo
         except Exception as err:
             print(f"no logo loaded: {err}")
 
@@ -54,6 +55,13 @@ class MainMenu:
         self.guest_id.grid(row=1, column=gcol)
         self.password_label.grid(row=2, column=gcol)
         self.guest_password.grid(row=2, column=gcol+1)
+
+    def connect_to(self, target):
+        """
+        Sets the target function of the connect button
+        :param target: Target function of the button
+        """
+        self.connect.configure(text="Connect", command=target)
 
     @staticmethod
     def character_limit(text: StringVar, lim):
