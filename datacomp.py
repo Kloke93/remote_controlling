@@ -5,10 +5,11 @@ Description: Video encoder for live-streaming
 """
 import ffmpeg
 
-# use pipe stdin and output to socket
+# uses pipe stdin, codec is libx264 and outputs to socket
 process = (
     ffmpeg
-    .input('pipe:')
+    .input('pipe:', codec='libx264')
+    .output()
 )
 
 
