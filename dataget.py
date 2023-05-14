@@ -66,8 +66,11 @@ def test_fps(lim=100) -> str:
     video = VideoGather()
     while i < lim:
         start = time.time()
-        video.get_frame()
+        frame = video.get_frame()
+        cv.imshow("Capture", frame)
         times.append(time.time() - start)
+        if cv.waitKey(1) & 0xFF == ord('q'):
+            break
         i += 1
     video.close()
     avg_time = sum(times) / len(times)
@@ -75,7 +78,7 @@ def test_fps(lim=100) -> str:
 
 
 if __name__ == "__main__":
-    print(test_fps())
+    print(test_fps(1000))
     # try:
     #     inp = InputGather()
     #     inp.mouse_listener.start()

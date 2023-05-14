@@ -25,7 +25,9 @@ class Client:
 
     def run_client(self):
         """ starts client communication """
-        self.udp_client.sendto(b"hola", self.server_address)
+
+        data = self.udp_client.recvfrom(Client.max_buffer)[0]
+        return data
 
 
 class ClientGuest(Client):
