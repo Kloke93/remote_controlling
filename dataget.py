@@ -3,28 +3,61 @@ Author: Tomas Dal Farra
 Date: 13/04/2023
 Description: Module to get all user input and screen output
 """
-
+from tkinter import Tk
 from mss import mss
 import numpy as np
 import cv2 as cv
 import time
 
 
-class InputGather:
-    """ class to gather all data needed """
-    def __init__(self):
-        """ initializer """
-        pass
+class InputMouse:
+    """ class to gather all the mouse input over a tkinter window """
+    def __init__(self, master: Tk):
+        """
+        Creates an instance of InputMouse
+        :param master: tkinter Tk instance (root) to take the Mouse events from
+        """
+        self.master = master
+        self.buttons_pressed = 0            # how many buttons are being pressed
 
-    @staticmethod
-    def on_click(x, y, bottom, pressed):
-        """ A mouse bottom was clicked """
-        pass
+    def bind_window(self):
+        """ Binds master window to InputMouse event handlers """
+        self.master.bind("<Button>", self.press)
+        self.master.bind("<ButtonRelease>", self.release)
+        self.master.bind("<Motion>", self.move)
 
-    @staticmethod
-    def on_scroll(x, y, dx, dy):
-        """ Mouse scroll """
-        pass
+    def press(self, event):
+        """
+        A mouse button was clicked
+        :param event: <Button> tkinter event
+        event -> num = which mouse button was clicked;
+        x = x coordinate
+        y = y coordinate
+        """
+        print(repr(event))
+        self.buttons_pressed += 1
+
+    def release(self, event):
+        """
+        A mouse button was released
+        :param event: <ButtonRelease> tkinter event
+        event -> num = which mouse button was clicked;
+        x = x coordinate
+        y = y coordinate
+        """
+        print(repr(event))
+        self.buttons_pressed -= 1
+
+    def move(self, event):
+        """
+        The mouse has been moved while holding a button
+        :param event: <Motion> tkinter event
+        event -> num = which mouse button was clicked;
+        x = x coordinate
+        y = y coordinate
+        """
+        if self.buttons_pressed:        # if buttons_pressed is equal to 0 it's not necessary to get the mouse motion
+            print(repr(event))
 
 
 class VideoGather:
@@ -47,7 +80,7 @@ class VideoGather:
         image = self.sct.grab(self.monitor)
         # noinspection PyTypeChecker
         frame = np.array(image)
-        frame_rgb = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
+        frame_rgb = cv.cvtColor(frame, cv.COLOR_BGR2RGB)            # changes image format from bgr to rgb
         return frame_rgb
 
     def close(self):
