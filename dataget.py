@@ -19,6 +19,7 @@ class InputMouse:
         """
         self.master = master
         self.buttons_pressed = 0            # how many buttons are being pressed
+        self.pos = (0, 0)                   # last mouse position (x, y)
 
     def bind_window(self):
         """ Binds master window to InputMouse event handlers """
@@ -28,7 +29,7 @@ class InputMouse:
 
     def press(self, event):
         """
-        A mouse button was clicked
+        A mouse button was pressed
         :param event: <Button> tkinter event
         event -> num = which mouse button was clicked;
         x = x coordinate
@@ -56,8 +57,40 @@ class InputMouse:
         x = x coordinate
         y = y coordinate
         """
-        if self.buttons_pressed:        # if buttons_pressed is equal to 0 it's not necessary to get the mouse motion
+        event_pos = (event.x, event.y)
+        # if the difference in any of axis is more than 5 then it's far enough
+        is_far = abs(self.pos[0] - event_pos[0]) > 5 or abs(self.pos[0] - event_pos[0]) > 5
+        if self.buttons_pressed and is_far:
+            self.pos = (event.x, event.y)
             print(repr(event))
+
+
+class InputKeyBoard:
+    """ class to gather all the keyboard input over a tkinter window """
+
+    def __init__(self, master):
+        self.master = master
+
+    def bind_window(self):
+        """ Binds master window to InputMouse event handlers """
+        self.master.bind("<Key>", self.press)
+        self.master.bind("<KeyRelease>", self.release)
+
+    @staticmethod
+    def pressed(event):
+        """
+        A key was pressed
+        :param event: <Key> tkinter event
+        """
+        print(repr(event))
+
+    @staticmethod
+    def released(event):
+        """
+        A key was pressed
+        :param event: <KeyRelease> tkinter event
+        """
+        print(repr(event))
 
 
 class VideoGather:
