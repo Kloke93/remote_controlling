@@ -3,6 +3,8 @@ Author: Tomas Dal Farra
 Date: 29/05/2023
 Description: Module to execute data received for computer devices (monitor, keyboard and mouse)
 """
+import time
+
 import pyautogui
 
 
@@ -70,7 +72,8 @@ class UseMouse:
 
 
 def main():
-    pyautogui.mouseDown()
+    time.sleep(10)
+    pyautogui.write("sorry nir I will get my project done", interval=0.25)
 
 
 if __name__ == "__main__":

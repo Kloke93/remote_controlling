@@ -8,9 +8,13 @@ import threading
 import socket
 import ssl
 import time
+import string
 
 
-class ActiveHost:
+CHARS = string.ascii_lowercase + string.digits
+
+
+class ActiveHosts:
     """ Class with all active hosts """
 
     def __init__(self):
@@ -27,20 +31,24 @@ class ActiveHost:
         """
         # ID_LENGTH = 15
         # id in format: ddd.ddd.ddd.ddd
-        if isinstance(host_id, str) and host_id[3::4] == "..." and host_id.replace('.', '').isdigit():
-            return True
-        else:
-            return False
+        # if isinstance(host_id, str) and host_id[3::4] == "..." and host_id.replace('.', '').isdigit():
+        #     return True
+        # else:
+        #     return False
+        for char in host_id:
+            if char not in CHARS:
+                return False
+        return True
 
-    def add(self, host_id: str, skt: socket.socket) -> bool:
+    def add(self, host_id: str, addr: tuple) -> bool:
         """
         Adds a new active host
         :param host_id: the unique id to identify the host
-        :param skt: this host socket to communicate
+        :param addr: address to later connect between clients
         :return: if the host was appended successfully
         """
         if self.is_id(host_id):
-            self.hosts[host_id] = skt
+            self.hosts[host_id] = addr
             return True
         else:
             return False
@@ -65,45 +73,46 @@ class ActiveHost:
 class Server:
     """ Defines the server to communicate with the clients """
     ip = '0.0.0.0'
-    port = 5678
+    port = 5010
     listen_size = 5
-    commands = ["HOSTING", "GUESTING", "REQUEST", "ABORT", "RETRY", "CONNECT"]
+    max_buffer = 2048
+    commands = ["PRESENT", "HOSTING", "GUESTING", "REQUEST", "ABORT", "RETRY", "CONNECT", "CONFIRM"]
     cert = "certificate.crt"
     key = "privatekey.key"
+    id_length = 12
 
     def __init__(self):
         """ initializes server tcp socket and tls context """
+        self.active_hosts = ActiveHosts()
         self.context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         self.context.load_cert_chain(Server.cert, Server.key)
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    @staticmethod
-    def validate(data: str) -> bool:
+    def invalid(self, sock: socket.socket, reason):
         """
-        Validates protocol in data
-        :param data: data from the client to validate its protocol
-        :return: if data is valid according to the protocol
+        If protocol is invalid then socket aborts
+        :param sock: socket connection
+        :param reason: reason of the abort message
         """
-        split = data.split()
-        if (split[0] not in Server.commands) or (data[-1] != ';'):
-            return False
-        elif split[0] == "HOSTING" and len(split) == 2:
-            return True
-        elif split[0] == "GUESTING" and len(split) == 3:
-            return True
-        else:
-            return False
+        self.send_abort(sock, reason)
+        raise ValueError(reason)
 
-    @staticmethod
-    def handle_client(client_sock: socket.socket, client_addr: tuple):
+    def handle_connection(self, client_sock: socket.socket, client_addr: tuple):
         """
         Handles client connection
         :param client_sock: Socket to communicate with the client
         :param client_addr: Client address
         """
         try:
-            pass
+            msg = client_sock.recv(Server.max_buffer).decode()
+            msg_split = self.valid(msg)
+            if not msg_split or not msg_split[0] == "PRESENT":
+                self.invalid(client_sock, "invalid protocol")
+            if not self.active_hosts.add(msg_split[1], client_addr):
+                self.invalid(client_sock, "invalid id")
         except socket.error as err:
+            logging.error(err)
+        except ValueError as err:
             logging.error(err)
         finally:
             client_sock.close()
@@ -118,7 +127,7 @@ class Server:
             secure_server = self.context.wrap_socket(self.server, server_side=True)
             while True:
                 client_sock, client_addr = secure_server.accept()
-                thread = threading.Thread(target=self.handle_client, args=(client_sock, client_addr),
+                thread = threading.Thread(target=self.handle_connection, args=(client_sock, client_addr),
                                           name=f"Thread{next_name}")
                 thread.start()
 
@@ -128,6 +137,34 @@ class Server:
             self.server.close()
             for thread in threads:
                 thread.join()
+
+    @staticmethod
+    def send_abort(sock: socket.socket, reason: str):
+        """
+        Sends to client an ABORT message with its corresponding reason
+        :param sock: client socket
+        :param reason: reason of the abort message
+        """
+        sock.send(f"ABORT {reason};;".encode())
+
+    @staticmethod
+    def valid(data: str) -> list:
+        """
+        Validates protocol in data and returns it ordered
+        :param data: data from the client to validate its protocol
+        :return: if data is valid returns list with command and arguments, if not returns none
+        """
+        split = data.split()
+        if (split[0] not in Server.commands) or (data[-2:] != ';'):
+            return []
+        elif split[0] == "PRESENT" and len(split) == 2 and len(split[1]) == Server.id_length + 2:
+            return [split[0], split[1][:-2]]
+        elif split[0] == "HOSTING" and len(split) == 2:
+            return [split[0], split[1][:-2]]
+        elif split[0] == "GUESTING" and len(split) == 3:
+            return [split[0], split[1], split[2][:-2]]
+        else:
+            return []
 
 
 if __name__ == "__main__":

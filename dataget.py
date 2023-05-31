@@ -93,7 +93,6 @@ class InputKeyBoard:
 
     def __init__(self, master):
         self.master = master
-        self.events = []
 
     def bind_window(self):
         """ Binds master window to InputMouse event handlers """
@@ -117,7 +116,6 @@ class InputKeyBoard:
             key = event.char
         else:
             key = self.special_key_adapter(event.keysym)
-        self.events.append(f"KP({key});;")
 
     def release(self, event):
         """
@@ -135,16 +133,6 @@ class InputKeyBoard:
             key = event.char
         else:
             key = self.special_key_adapter(event.keysym)
-        self.events.append(f"KR({key});;")
-
-    def get_events(self):
-        """
-
-        :return:
-        """
-        events = self.events
-        self.events.clear()
-        self.
 
     @staticmethod
     def special_key_adapter(key: str) -> str:

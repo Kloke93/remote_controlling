@@ -19,7 +19,8 @@ class Client:
         self.server_ip = ip
         self.server_address = (self.server_ip, Client.server_port)
 
-        # socket
+        # sockets
+        self.tcp_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.udp_client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.udp_client.bind(("0.0.0.0", Client.server_port))           # every udp packet in the port
 
