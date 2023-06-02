@@ -3,7 +3,9 @@ Author: Tomas Dal Farra
 Date:
 Description: Communication handling module
 """
+import logging
 import socket
+import ssl
 
 
 class Client:
@@ -19,16 +21,30 @@ class Client:
         self.server_ip = ip
         self.server_address = (self.server_ip, Client.server_port)
 
-        # sockets
-        self.tcp_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # create ssl context
+        context = ssl.create_default_context()
+        # allow self-signed certificates
+        context.check_hostname = False
+        context.verify_mode = ssl.CERT_NONE
+        # secured tcp socket
+        tcp_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.secure_client = context.wrap_socket(tcp_client, server_hostname=ip)
+
+        # udp sockets
         self.udp_client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.udp_client.bind(("0.0.0.0", Client.server_port))           # every udp packet in the port
 
     def run_client(self):
         """ starts client communication """
-
-        data = self.udp_client.recvfrom(Client.max_buffer)[0]
-        return data
+        try:
+            self.secure_client.connect((self.server_ip, 5010))
+            self.secure_client.send('hola'.encode())
+            print(self.secure_client.recv().decode())
+        except socket.error as err:
+            logging.critical(err)
+        finally:
+            self.secure_client.close()
+            self.udp_client.close()
 
 
 class ClientGuest(Client):

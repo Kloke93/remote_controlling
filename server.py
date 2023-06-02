@@ -9,17 +9,19 @@ import socket
 import ssl
 import time
 import string
+import select
 
 
 CHARS = string.ascii_lowercase + string.digits
 
 
-class ActiveHosts:
+class Hosts:
     """ Class with all active hosts """
+    id_length = 12
 
     def __init__(self):
         """ initializes the dictionary that contains all hosts """
-        # dictionary format: {id: socket}
+        # dictionary format: {id: (socket, addr)}
         self.hosts = {}
 
     @staticmethod
@@ -35,25 +37,28 @@ class ActiveHosts:
         #     return True
         # else:
         #     return False
+        if len(host_id) != Hosts.id_length:
+            return False
         for char in host_id:
             if char not in CHARS:
                 return False
         return True
 
-    def add(self, host_id: str, addr: tuple) -> bool:
+    def add(self, host_id: str, skt: socket.socket, addr: tuple) -> bool:
         """
         Adds a new active host
         :param host_id: the unique id to identify the host
+        :param skt: socket descriptor connected to client
         :param addr: address to later connect between clients
         :return: if the host was appended successfully
         """
         if self.is_id(host_id):
-            self.hosts[host_id] = addr
+            self.hosts[host_id] = (skt, addr)
             return True
         else:
             return False
 
-    def pop(self, host_id: str) -> socket.socket:
+    def pop(self, host_id: str) -> tuple[socket.socket, tuple]:
         """
         Removes a host (is not active)
         :param host_id: the unique id to identify the host
@@ -83,33 +88,67 @@ class Server:
 
     def __init__(self):
         """ initializes server tcp socket and tls context """
-        self.active_hosts = ActiveHosts()
+        self.lock = threading.Lock()
+        self.active_hosts = Hosts()
         self.context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         self.context.load_cert_chain(Server.cert, Server.key)
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    def invalid(self, sock: socket.socket, reason):
+    def handle_data(self, data: list, client_sock: socket.socket, client_addr: tuple):
         """
-        If protocol is invalid then socket aborts
-        :param sock: socket connection
-        :param reason: reason of the abort message
+        Handles different input messages according to protocol
+        :param data: message received from the client
+        :param client_sock: Socket to communicate with the client
+        :param client_addr: Client address (ip, port)
+        :return: Response message according to data (when there is no respond then it returns None)
         """
-        self.send_abort(sock, reason)
-        raise ValueError(reason)
+        command = data[0]            # command in data
+        args = data[1:]         # arguments of the command
+        if command == "PRESENT":
+            if not self.active_hosts.add(args[0], client_sock, client_addr):
+                self.invalid(client_sock, "invalid id")
+            return None
+        if command == "GUESTING":
+            if args[0] == 'id':                                         # client is giving an id
+                if self.active_hosts.is_id(args[1]):                    # if id is in correct format
+                    if self.active_hosts.get(args[1]) is not None:      # if there is an active host with this id
+                        return "REQUEST password"
+                    else:
+                        return "RETRY id"
+                else:
+                    self.invalid(client_sock, "invalid id")
+            elif args[0] == 'password':
+                pass
+            else:
+                self.invalid(client_sock, "invalid data")
 
     def handle_connection(self, client_sock: socket.socket, client_addr: tuple):
         """
         Handles client connection
         :param client_sock: Socket to communicate with the client
-        :param client_addr: Client address
+        :param client_addr: Client address (ip, port)
         """
+        inputs = [client_sock]          # sockets to read from
+        outputs = [client_sock]         # socket to write to
+        messages = []                   # messages to send
         try:
-            msg = client_sock.recv(Server.max_buffer).decode()
-            msg_split = self.valid(msg)
-            if not msg_split or not msg_split[0] == "PRESENT":
-                self.invalid(client_sock, "invalid protocol")
-            if not self.active_hosts.add(msg_split[1], client_addr):
-                self.invalid(client_sock, "invalid id")
+            while inputs:
+                rlist, wlist, xlist = select.select(inputs, outputs, inputs)
+                for s in rlist:
+                    data = s.recv(Server.max_buffer).decode()
+                    if data == "":          # if client closed disconnected
+                        inputs.remove(s)
+                    else:
+                        data_split = self.valid(data)
+                        if not data_split:
+                            self.invalid(client_sock, "invalid protocol")
+                        message = self.handle_data(data_split, client_sock, client_addr)
+
+                for msg in messages:
+                    pass
+                for s in xlist:
+                    pass
+
         except socket.error as err:
             logging.error(err)
         except ValueError as err:
@@ -125,10 +164,15 @@ class Server:
             self.server.bind((Server.ip, Server.port))
             self.server.listen(Server.listen_size)
             secure_server = self.context.wrap_socket(self.server, server_side=True)
+            # handle clients
             while True:
                 client_sock, client_addr = secure_server.accept()
+                client_sock.setblocking(False)
+                # sending socket descriptor on a thread to handle it
                 thread = threading.Thread(target=self.handle_connection, args=(client_sock, client_addr),
                                           name=f"Thread{next_name}")
+                threads.append(thread)
+                next_name += 1
                 thread.start()
 
         except socket.error as err:
@@ -137,6 +181,15 @@ class Server:
             self.server.close()
             for thread in threads:
                 thread.join()
+
+    def invalid(self, sock: socket.socket, reason):
+        """
+        If protocol is invalid then socket aborts
+        :param sock: socket connection
+        :param reason: reason of the abort message
+        """
+        self.send_abort(sock, reason)
+        raise ValueError(reason)
 
     @staticmethod
     def send_abort(sock: socket.socket, reason: str):
@@ -167,5 +220,10 @@ class Server:
             return []
 
 
+def main():
+    server = Server()
+    server.run_server()
+
+
 if __name__ == "__main__":
-    pass
+    main()
