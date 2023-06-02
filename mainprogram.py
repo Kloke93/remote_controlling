@@ -3,9 +3,10 @@ Author: Tomas Dal Farra
 Date:
 Description: Execute the main program
 """
+import socket
 from tkinter import Tk
 from menu import MainMenu
-from dataget import InputMouse, InputKeyBoard
+from dataget import InputMouseSend, InputKeyBoard
 from database import DataBase
 from client import Client
 import cv2 as cv
@@ -14,10 +15,9 @@ import cv2 as cv
 def main():
     db = DataBase()
     root = Tk()
-    mouse = InputMouse(root)
+    InputMouseSend(root, socket.socket())
     keyboard = InputKeyBoard(root)
     MainMenu(root, db.get_id(), db.get_password())
-    mouse.bind_window()
     keyboard.bind_window()
     root.mainloop()
     db.close()

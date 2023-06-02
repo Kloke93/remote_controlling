@@ -46,8 +46,8 @@ class DataBase:
         Note: it is currently using mac address to generate the id, so it's not perfect
         :return: string with the unique id
         """
-        name_hash = hashlib.md5(platform.node().encode())
-        mac_hash = hashlib.md5(str(uuid.getnode()).encode())
+        name_hash = hashlib.md5(platform.node().encode())       # computer name
+        mac_hash = hashlib.md5(str(uuid.getnode()).encode())    # mac address
         return mac_hash.hexdigest()[:DataBase.half_id] + name_hash.hexdigest()[:DataBase.half_id]
 
     def get_id(self):

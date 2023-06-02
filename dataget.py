@@ -3,12 +3,12 @@ Author: Tomas Dal Farra
 Date: 13/04/2023
 Description: Module to get all user input and screen output
 """
+from string import ascii_letters
 from tkinter import Tk
 from mss import mss
 import numpy as np
 import cv2 as cv
 import time
-from string import ascii_letters
 
 
 class InputMouse:
@@ -36,8 +36,8 @@ class InputMouse:
         A mouse button was pressed
         :param event: <Button> tkinter event
         event -> num = which mouse button was clicked (1=left, 2=middle, 3=right)
-        x = x coordinate
-        y = y coordinate
+            x = x coordinate
+            y = y coordinate
         :return: a tuple with the event elements and translated num (x, y, button)
         """
         self.buttons_pressed += 1
@@ -49,8 +49,8 @@ class InputMouse:
         A mouse button was released
         :param event: <ButtonRelease> tkinter event
         event -> num = which mouse button was clicked (1=left, 2=middle, 3=right)
-        x = x coordinate
-        y = y coordinate
+            x = x coordinate
+            y = y coordinate
         :return: a tuple with the event elements and translated num (x, y, button)
         """
         self.buttons_pressed -= 1
@@ -62,7 +62,7 @@ class InputMouse:
         The mouse has been moved while holding a button
         :param event: <Motion> tkinter event
         event -> x = x coordinate
-        y = y coordinate
+            y = y coordinate
         :return: a tuple with the event elements (x, y)
         """
         # if there is a button pressed
@@ -80,9 +80,9 @@ class InputMouse:
         The mouse wheel was rolled
         :param event: <MouseWheel> tkinter event
         event -> delta = amount of scrolling
-        x = x coordinate
-        y = y coordinate
-        state = if it is vertical or horizontal scroll
+            x = x coordinate
+            y = y coordinate
+            state = if it is vertical or horizontal scroll
         :return: a tuple with the event elements (delta, x, y, state)
         """
         return event.delta, event.x, event.y, event.state
@@ -91,7 +91,11 @@ class InputMouse:
 class InputKeyBoard:
     """ class to gather all the keyboard input over a tkinter window """
 
-    def __init__(self, master):
+    def __init__(self, master: Tk):
+        """
+        Creates an instance of InputKeyBoard
+        :param master: tkinter Tk instance (root) to take the keyboard events from
+        """
         self.master = master
 
     def bind_window(self):
@@ -104,11 +108,11 @@ class InputKeyBoard:
         A key was pressed
         :param event: <Key> tkinter event
         event -> keycode = numeric code that identifies the key
-        x = x coordinate
-        y = y coordinate
-        char = regular ASCII character
-        keysym = the key's string name for special keys
-        state = an integer describing the state of all the modifier keys
+            x = x coordinate
+            y = y coordinate
+            char = regular ASCII character
+            keysym = the key's string name for special keys
+            state = an integer describing the state of all the modifier keys
         :return: corresponding clicked key
         """
         # if it is not a special key
@@ -116,16 +120,17 @@ class InputKeyBoard:
             key = event.char
         else:
             key = self.special_key_adapter(event.keysym)
+        return key
 
     def release(self, event):
         """
         A key was released
         :param event: <KeyRelease> tkinter event
         event -> keycode = numeric code that identifies the key
-        x = x coordinate
-        y = y coordinate
-        keysym = the key's string name
-        state = an integer describing the state of all the modifier keys
+            x = x coordinate
+            y = y coordinate
+            keysym = the key's string name
+            state = an integer describing the state of all the modifier keys
         :return: corresponding released key
         """
         # if it is not a special key
@@ -133,6 +138,7 @@ class InputKeyBoard:
             key = event.char
         else:
             key = self.special_key_adapter(event.keysym)
+        return key
 
     @staticmethod
     def special_key_adapter(key: str) -> str:
