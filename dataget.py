@@ -23,6 +23,7 @@ class InputMouse:
         self.master = master
         self.buttons_pressed = 0            # how many buttons are being pressed
         self.pos = (0, 0)                   # last mouse position (x, y)
+        self.bind_window()
 
     def bind_window(self):
         """ Binds master window to InputMouse event handlers """
@@ -97,6 +98,7 @@ class InputKeyBoard:
         :param master: tkinter Tk instance (root) to take the keyboard events from
         """
         self.master = master
+        self.bind_window()
 
     def bind_window(self):
         """ Binds master window to InputMouse event handlers """

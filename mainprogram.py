@@ -6,7 +6,8 @@ Description: Execute the main program
 import socket
 from tkinter import Tk
 from menu import MainMenu
-from dataget import InputMouseSend, InputKeyBoard
+from dataget import InputMouse, InputKeyBoard
+from inputsend import InputMouseSend
 from database import DataBase
 from client import Client
 import cv2 as cv

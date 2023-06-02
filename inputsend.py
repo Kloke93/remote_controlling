@@ -4,7 +4,10 @@ from tkinter import Tk
 
 
 class InputMouseSend(InputMouse):
-    """ Gets all mouse input from tkinter and sends them on socket """
+    """
+    Gets all mouse input from tkinter and sends them on socket.
+    protocol: Action(data);;
+    """
 
     def __init__(self, master: Tk, skt: socket):
         """
@@ -14,7 +17,6 @@ class InputMouseSend(InputMouse):
         """
         super().__init__(master)
         self.skt = skt
-        super().bind_window()
 
     def press(self, event):
         """
@@ -65,7 +67,6 @@ class InputKeySend(InputKeyBoard):
         """
         super().__init__(master)
         self.skt = skt
-        super().bind_window()
 
     def press(self, event):
         """
