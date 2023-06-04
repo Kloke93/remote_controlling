@@ -74,6 +74,11 @@ class ScreenEncode(StreamEncode):
         self.write_stdin(self.camera.get_frame())
 
 
+class StreamDecode:
+    """ Decoding video stream from libx264 h264 to rawvideo rgb24 and from url to stdout """
+    pass
+
+
 def main():
     socket_url = "udp://127.0.0.1:5010"
     # socket_url = "udp://172.16.11.198:5010"

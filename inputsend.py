@@ -1,3 +1,8 @@
+"""
+Author: Tomas Dal Farra
+Date: 02/06/2023
+Description: Adapts events from tkinter send them on socket with protocol for Remote-Controlling
+"""
 from dataget import InputMouse, InputKeyBoard
 from socket import socket
 from tkinter import Tk

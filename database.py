@@ -1,7 +1,7 @@
 """
 Author: Tomas Dal Farra
 Date: 31/05/2023
-Description: two items database with SQLite
+Description: Two items database with SQLite implementation for Remote-Controlling
 """
 import sqlite3
 import string

@@ -1,7 +1,7 @@
 """
 Author: Tomas Dal Farra
 Date:
-Description:
+Description: Implements the GUI for Remote-Controlling
 """
 from tkinter import Tk, Label, Button, Entry, StringVar
 

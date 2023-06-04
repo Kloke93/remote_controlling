@@ -1,7 +1,7 @@
 """
 Author: Tomas Dal Farra
-Date:
-Description:
+Date: 04/06/2023
+Description: Implementation of the server for Remote-Controlling
 """
 import logging
 import threading

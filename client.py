@@ -1,7 +1,7 @@
 """
 Author: Tomas Dal Farra
 Date:
-Description: Communication handling module
+Description: Client communication handling module
 """
 import logging
 import socket
@@ -38,7 +38,7 @@ class Client:
         """ starts client communication """
         try:
             self.secure_client.connect((self.server_ip, 5010))
-            self.secure_client.send('hola'.encode())
+            self.secure_client.send('test'.encode())
             print(self.secure_client.recv().decode())
         except socket.error as err:
             logging.critical(err)

@@ -1,7 +1,7 @@
 """
 Author: Tomas Dal Farra
 Date:
-Description: Execute the main program
+Description: Execute the main program for Remote-Controlling
 """
 import socket
 from tkinter import Tk
