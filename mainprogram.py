@@ -1,6 +1,6 @@
 """
 Author: Tomas Dal Farra
-Date:
+Date: 04/06/2023
 Description: Execute the main program for Remote-Controlling
 """
 import socket
@@ -13,6 +13,7 @@ import cv2 as cv
 
 
 def main():
+    """ Combines all the program functionalities and runs it"""
     db = DataBase()
     root = Tk()
     InputMouse(root)

@@ -1,6 +1,6 @@
 """
 Author: Tomas Dal Farra
-Date:
+Date: 04/06/2023
 Description: Client communication handling module
 """
 import logging

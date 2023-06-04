@@ -1,7 +1,7 @@
 """
 Author: Tomas Dal Farra
 Date: 18/04/2023
-Description: Video encoder for live-streaming
+Description: Video encoder/decoder for live-streaming
 """
 import ffmpeg
 from dataget import VideoGather
@@ -9,7 +9,7 @@ from dataget import VideoGather
 
 class StreamEncode:
     """ Encoding video stream from rawvideo rgb24 to libx264 h264 and from stdin to url """
-    standard_url = 'pipe:'
+    standard_url = 'pipe:'          # standard url of the input for the subprocess
 
     def __init__(self, width, height, url):
         """
@@ -76,7 +76,10 @@ class ScreenEncode(StreamEncode):
 
 class StreamDecode:
     """ Decoding video stream from libx264 h264 to rawvideo rgb24 and from url to stdout """
-    pass
+
+    def run_decoder(self):
+        """ Invokes the ffmpeg subprocess with self settings """
+        pass
 
 
 def main():

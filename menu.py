@@ -1,6 +1,6 @@
 """
 Author: Tomas Dal Farra
-Date:
+Date: 04/06/2023
 Description: Implements the GUI for Remote-Controlling
 """
 from tkinter import Tk, Label, Button, Entry, StringVar

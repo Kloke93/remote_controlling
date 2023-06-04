@@ -12,6 +12,12 @@ import string
 import select
 
 
+logging.basicConfig(
+     filename='server.log',
+     level=logging.INFO,
+     format='[%(asctime)s] {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s',
+     datefmt='%H:%M:%S'
+ )
 CHARS = string.ascii_lowercase + string.digits
 
 
@@ -77,13 +83,14 @@ class Hosts:
 
 class Server:
     """ Defines the server to communicate with the clients """
-    ip = '0.0.0.0'
-    port = 5010
-    listen_size = 5
-    max_buffer = 2048
-    commands = ["PRESENT", "HOSTING", "GUESTING", "REQUEST", "ABORT", "RETRY", "CONNECT", "CONFIRM"]
-    cert = "certificate.crt"
-    key = "privatekey.key"
+    ip = '0.0.0.0'              # ip to bind to
+    port = 5010                 # port to bind to
+    listen_size = 5             # maximum listen size
+    max_buffer = 2048           # maximum receive buffer
+    # available commands
+    commands = ["PRESENT", "HOSTING", "GUESTING", "REQUEST", "ABORT", "RETRY", "CONNECT", "CONNECTED"]
+    cert = "certificate.crt"    # SSL certificate
+    key = "privatekey.key"      # SSL key
     id_length = 12
 
     def __init__(self):

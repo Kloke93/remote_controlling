@@ -25,7 +25,7 @@ def generate_password(n: int = 8) -> str:
 
 class DataBase:
     """ Creates a data to store user id and password """
-    half_id = 6
+    half_id = 6         # half of a normal id length
 
     def __init__(self):
         """ creates database with user (id, password) values """
