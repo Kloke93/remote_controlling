@@ -20,7 +20,7 @@ def generate_password(n: int = 8) -> str:
     :param n: length of the password
     :return: generated password
     """
-    return ''.join(choice(CHARS) for _ in range(n+1))
+    return ''.join(choice(CHARS) for _ in range(n))
 
 
 class DataBase:
