@@ -73,7 +73,7 @@ class UseMouse:
 
 def main():
     time.sleep(10)
-    pyautogui.write("sorry nir I will get my project done", interval=0.25)
+    pyautogui.write("test", interval=0.25)
 
 
 if __name__ == "__main__":
