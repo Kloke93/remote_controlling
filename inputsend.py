@@ -29,7 +29,10 @@ class InputMouseSend(InputMouse):
         then writes protocol over this data and finally sends it on socket
         """
         data = super().press(event)
-        protocol_data = f"MousePress {data};;"
+        x = data[0]
+        y = data[1]
+        button = data[2]
+        protocol_data = self.protocol("mousepress", x, y, button)
         self.skt.send(protocol_data.encode())
 
     def release(self, event):
@@ -38,7 +41,10 @@ class InputMouseSend(InputMouse):
         then writes protocol over this data and finally sends it on socket
         """
         data = super().release(event)
-        protocol_data = f"MouseRelease {data};;"
+        x = data[0]
+        y = data[1]
+        button = data[2]
+        protocol_data = self.protocol("mouserelease", x, y, button)
         self.skt.send(protocol_data.encode())
 
     def move(self, event):
@@ -47,8 +53,10 @@ class InputMouseSend(InputMouse):
         then writes protocol over this data and finally sends it on socket
         """
         data = super().move(event)
+        x = data[0]
+        y = data[1]
         if data is not None:
-            protocol_data = f"MouseMove {data};;"
+            protocol_data = self.protocol("mousemove", x, y)
             self.skt.send(protocol_data.encode())
 
     def scroll(self, event):
@@ -57,8 +65,26 @@ class InputMouseSend(InputMouse):
         then writes protocol over this data and finally sends it on socket
         """
         data = super().scroll(event)
-        protocol_data = f"MouseScroll {data};;"
+        delta = data[0]
+        x = data[1]
+        y = data[2]
+        state = data[3]
+        protocol_data = self.protocol("mousescroll", delta, x, y, state)
         self.skt.send(protocol_data.encode())
+
+    @staticmethod
+    def protocol(command: str, *args: str) -> str:
+        """
+        Converts command and arguments to the appropriate protocol
+        :param command: command according to protocol
+        :param args: arguments of the command according to protocol
+        :return: appropriate message over protocol
+        """
+        # protocol:
+        # COMMAND arg1 arg2 ... arg;;
+        command = command.upper()
+        args = " ".join(args)
+        return f"{command} {args};;"
 
 
 class InputKeySend(InputKeyBoard):
@@ -78,8 +104,8 @@ class InputKeySend(InputKeyBoard):
         Gets data from press method from an InputKeyBoard instance,
         then writes protocol over this data and finally sends it on socket
         """
-        data = super().press(event)
-        protocol_data = f"KeyPress {data};;"
+        key = super().press(event)
+        protocol_data = self.protocol("keypress", key)
         self.skt.send(protocol_data.encode())
 
     def release(self, event):
@@ -87,6 +113,20 @@ class InputKeySend(InputKeyBoard):
         Gets data from release method from an InputKeyBoard instance,
         then writes protocol over this data and finally sends it on socket
         """
-        data = super().release(event)
-        protocol_data = f"KeyRelease {data};;"
+        key = super().release(event)
+        protocol_data = self.protocol("keyrelease", key)
         self.skt.send(protocol_data.encode())
+
+    @staticmethod
+    def protocol(command: str, *args: str) -> str:
+        """
+        Converts command and arguments to the appropriate protocol
+        :param command: command according to protocol
+        :param args: arguments of the command according to protocol
+        :return: appropriate message over protocol
+        """
+        # protocol:
+        # COMMAND arg1 arg2 ... arg;;
+        command = command.upper()
+        args = " ".join(args)
+        return f"{command} {args};;"

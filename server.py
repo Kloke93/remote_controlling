@@ -85,7 +85,7 @@ class Server:
     ip = '0.0.0.0'              # ip to bind to
     port = 5010                 # port to bind to
     listen_size = 5             # maximum listen size
-    max_buffer = 2048           # maximum receive buffer
+    max_buffer = 256            # maximum receive buffer
     # available commands that arrive to server
     commands = ["PRESENT", "GUESTING", "REQUEST", "ABORT", "RETRY", "CONNECT", "CONNECTED"]
     cert = "certificate.crt"    # SSL certificate
