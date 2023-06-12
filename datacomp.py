@@ -42,7 +42,7 @@ class StreamEncode:
 
     def write_stdin(self, data):
         """
-         Writes data to stdin
+        Writes data to stdin
         :param data: input data for stdin
         """
         self.process.stdin.write(data)
@@ -76,10 +76,49 @@ class ScreenEncode(StreamEncode):
 
 class StreamDecode:
     """ Decoding video stream from libx264 h264 to rawvideo rgb24 and from url to stdout """
+    standard_url = 'pipe:'  # standard url of the input for the subprocess
+
+    def __init__(self, width, height, url):
+        """
+        Gets settings for a ffmpeg subprocess to decode from libx264 h264 to rawvideo rgb24 for live-streaming
+        :param width: video data width length
+        :param height: video data height length
+        :param url: location of the encoded data source
+        """
+        self.width = width
+        self.height = height
+        self.url = url
+        self.process = None
 
     def run_decoder(self):
         """ Invokes the ffmpeg subprocess with self settings """
-        pass
+        self.process = (
+            ffmpeg
+            .input(
+                self.url, format='h264', pix_fmt='yuv420p',
+                s=f'{self.width}x{self.height}'
+            )
+            .output(
+                'pipe:',  # output to stdout
+                codec='libavcodec', format='rawvideo', pix_fmt='rgb24',  # encoding format
+                tune='zerolatency', preset='ultrafast', crf='23',  # quality and speed to encode
+            )
+            # if url is stdout so it opens the pipe
+            .run_async(pipe_stdin=(StreamDecode.standard_url == self.url), pipe_stdout=True)
+        )
+
+    def read_stdout(self):
+        """
+        Writes from stdout rgb width * height
+        """
+        self.process.stdout.read(self.width * self.height * 3)
+
+    def close(self):
+        """ Closes the ffmpeg process """
+        self.process.stdout.close()
+        if self.url == StreamEncode.standard_url:
+            self.process.stdin.close()
+        self.process.kill()
 
 
 def main():
