@@ -8,6 +8,8 @@ import socket
 import ssl
 import select
 from dataexct import UseKeyBoard, UseMouse
+from menu import PasswordMenu, VisualizeMenu
+from tkinter import Tk
 
 
 class Client:
@@ -18,11 +20,12 @@ class Client:
     # available commands that arrive to client
     commands = ["GUESTING", "REQUEST", "ABORT", "RETRY", "CONNECT"]
 
-    def __init__(self, ip, user_id):
+    def __init__(self, ip, user_id, sock):
         """
         Initiates client communication sockets
         :param ip: servers ip
         :param user_id: unique id of the user
+        :param sock: socket descriptor
         """
         self.id = user_id
         self.server_ip = ip
@@ -34,8 +37,8 @@ class Client:
         self.context.check_hostname = False
         self.context.verify_mode = ssl.CERT_NONE
         # secured tcp socket
-        tcp_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        tcp_client.settimeout(120)              # if server does not answer in two minutes something happened
+        # tcp_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        tcp_client = sock
         self.secure_client = self.context.wrap_socket(tcp_client, server_hostname=ip)
 
     def present(self):
@@ -44,7 +47,6 @@ class Client:
         self.secure_client.connect((self.server_ip, 5010))
         self.secure_client.send(f'PRESENT {self.id};;'.encode())
         # except socket.error
-        # finally
 
     def connected(self):
         """"""
@@ -97,16 +99,18 @@ class Client:
 class ClientGuest(Client):
     """ Client communications for guest mode """
 
-    def __init__(self, server_ip, user_id):
+    def __init__(self, server_ip, user_id, sock):
         """
         initializes the guest socket
         :param server_ip: servers ip
         :param user_id: unique id of the user
+        :param sock: socket descriptor
         """
-        super().__init__(server_ip, user_id)
+        super().__init__(server_ip, user_id, sock)
         self.guest = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.guest.setblocking(False)
         self.secure_guest = None         # SSL wrapped socket when we already know the
+        self.guest_mode = False          # server communication blocks?
 
     def connect_id(self, host_id: str) -> int:
         """
@@ -114,6 +118,12 @@ class ClientGuest(Client):
         :param host_id: host's id
         :return: if the id was correct -1, if not how much time to wait to continue communication
         """
+        # Adapts server connection for guest mode
+        if not self.guest_mode:
+            self.secure_client.setblocking(True)  # communication with the server blocks
+            self.secure_client.settimeout(120)  # if server does not answer in two minutes something happened
+            self.guest_mode = True
+        # ---------------------------------------
         self.secure_client.send(self.protocol('guesting', 'id', host_id).encode())
         data = self.secure_client.recv(Client.max_buffer).decode()
         if data:
@@ -155,11 +165,11 @@ class ClientGuest(Client):
         try:
             self.secure_guest = self.context.wrap_socket(self.guest, server_hostname=ip)
             self.secure_guest.connect((ip, port))
+            print("connected to host")
             return True
         except socket.error:
             return False
         # finally
-
 
 
 class ClientHost(Client):
@@ -168,43 +178,94 @@ class ClientHost(Client):
     cert = 'certificate.crt'
     key = 'privatekey.key'
     # possible commands from a guest to execute
-    exct_commands = ('MOUSEPRESS', 'MOUSERELEASE', 'MOUSEMOVE', 'MOUSESCROLL',
-                      'KEYPRESS', 'KEYRELEASE')
+    exct_commands = ('MOUSEPRESS', 'MOUSERELEASE', 'MOUSEMOVE', 'MOUSESCROLL', 'KEYPRESS', 'KEYRELEASE')
 
-    def __init__(self, server_ip, user_id):
+    def __init__(self, server_ip, user_id, sock):
         """
         initializes the host socket
         :param server_ip: servers ip
         :param user_id: unique id of the user
+        :param sock: socket descriptor
         """
-        super().__init__(server_ip, user_id)
+        super().__init__(server_ip, user_id, sock)
         # ssl context
         self.context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         self.context.load_cert_chain(ClientHost.cert, ClientHost.key)
 
-        self.host = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.host.setblocking(False)
-        self.secure_host = None         # SSL wrapped socket when we already know the
+        self.connection_host = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.secure_connect = None         # SSL wrapped socket to establish a connection
+        self.secure_host = None            # # SSL wrapped socket when we already know the guest
+        self.messages = []
 
         # hardware
         self.keyboard = UseKeyBoard()
         self.mouse = UseMouse()
 
-    def run_host(self):
+    def message_server(self, message):
         """
-        Runs host side communication
+        Adds a message to send to server
+        :param message: message for server (already over protocol)
+        """
+        self.messages.append(message)
+
+    def communicate(self):
+        """ Communicates with server """
+        value = None            # does not return
+        rlist, wlist, xlist = select.select([self.secure_client], [self.secure_client], [self.secure_client])
+
+        # exception
+        for s in xlist:
+            s.close()
+            raise socket.error("Error in the server connection")
+        # read
+        for s in rlist:
+            data = s.recv(Client.max_buffer).decode()
+
+            if data == "":
+                # disconnect
+                self.secure_client.close()
+                self.messages.clear()
+
+            commands = data.split(';;')
+            for command in commands:
+                command = self.valid(command+';;')
+                if command:
+                    if command[0] == "GUESTING" and command[1] == "password":
+                        value = command[2]          # will return the password received
+        # write
+        for message in self.messages:
+            if self.secure_client in wlist:
+                self.secure_client.send(message.encode())
+                self.messages.remove(message)
+
+        return value
+
+    def connect_host(self):
+        """ Connects host server to have a connection with a guest """
+        self.secure_host, _ = self.secure_connect.accept()
+
+    def get_guest(self) -> tuple[str, int]:
+        """
+        Gets guest's address
+        :return: guest's address (ip, port)
+        """
+        return self.secure_host.getpeername()
+
+    def start_host(self):
+        """
+        Starts host side communication
         """
         try:
             super().present()
-            self.host.bind(('0.0.0.0', Client.client_port))             # accepts a connection from anyone
-            self.host.listen(ClientHost.listen_size)
-            self.secure_host = self.context.wrap_socket(self.host, server_side=True)
+            self.connection_host.bind(('0.0.0.0', Client.client_port+3))             # accepts a connection from anyone
+            self.connection_host.listen(ClientHost.listen_size)
+            self.secure_connect = self.context.wrap_socket(self.connection_host, server_side=True)
         except socket.error as err:
             logging.critical(err)
         finally:
             self.secure_client.close()
 
-    def communicate(self):
+    def hosting(self):
         """ Handles communication with a guest """
         rlist, _, xlist = select.select([self.secure_host], [], [self.secure_host])
         # exception
@@ -274,12 +335,8 @@ class ClientHost(Client):
 
 def main():
     """ tests classes """
-    c = Client('127.0.0.1')
-    c.run_client()
+    pass
 
 
 if __name__ == "__main__":
     main()
-
-
-

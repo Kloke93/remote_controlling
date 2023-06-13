@@ -4,6 +4,10 @@ Date: 04/06/2023
 Description: Implements the GUI for Remote-Controlling
 """
 from tkinter import Tk, Label, Button, Entry, StringVar
+from inputsend import InputKeySend, InputMouseSend
+from datacomp import StreamDecode
+import socket
+from
 
 
 class Menu:
@@ -78,7 +82,8 @@ class MainMenu(Menu):
         :param target: Target function of the button
         It is supposed to be targeted to some socket connection
         """
-        self.connect.configure(text="Connect", command=target)
+        # target function gets host_id entry
+        self.connect.configure(text="Connect", command=lambda: target(self.host_id.get()))
 
     def update_to(self, target):
         """
@@ -134,7 +139,7 @@ class PasswordMenu(Menu):
         :param target: Target function of the button
         It is supposed to be targeted to some socket send password function
         """
-        self.send_password.configure(text="Update", command=target)
+        self.send_password.configure(text="Update", command=lambda: target(self.host_password.get()))
 
 
 class DisconnectMenu(Menu):
@@ -158,6 +163,33 @@ class DisconnectMenu(Menu):
         pady = 7
         self.title.grid(row=0, padx=padx, pady=pady)
         self.disconnect.grid(row=1, padx=padx, pady=pady)
+
+
+class VisualizeMenu:
+    """ Class to see video stream """
+
+    def __init__(self, master: Tk, sock: socket.socket, width=1920, height=1080):
+        """
+        Creates an instance of VisualizeMenu
+        :param master: tkinter Tk instance (root)
+        :param width: video width
+        :param height: video height
+        """
+        self.master = master
+        self.master.geometry(f'{width}x{height}')
+        self.displayer = Label(self.master, image=)
+        # sending events
+        InputMouseSend(self.master, sock)
+        InputKeySend(self.master, sock)
+        # decoder
+        ip, port = sock.getpeername()
+        decoder = StreamDecode(f'udp://{ip}:{port}', 1920, 1080)
+        decoder.run_decoder()
+
+    def update_image(self):
+        """ Updates images that we are seeing """
+
+        self.master.after(10, self.update_image)
 
 
 def main():

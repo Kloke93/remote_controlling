@@ -43,6 +43,7 @@ class InputMouse:
         """
         self.buttons_pressed += 1
         self.pos = (event.x, event.y)
+        print('a')
         return self.pos + (InputMouse.buttons[event.num],)
 
     def release(self, event):
