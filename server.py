@@ -59,6 +59,7 @@ class Hosts:
         """
         if self.is_id(host_id):
             self.hosts[host_id] = skt
+            print(f'{host_id} is connected')
             return True
         else:
             return False
@@ -117,13 +118,14 @@ class Server:
         It also appends a response to the client to the messages list
         """
         data = self.valid(data)                 # data processed
+        print(data)
         if not data:                            # if data isn't valid
-            self.invalid(skt, "invalid protocol")
+            self.invalid(skt, f"invalid protocol")
         command = data[0]                       # command in data
         args = data[1:]                         # arguments of the command
         if command == "PRESENT":
             if not self.active_hosts.add(args[0], skt):
-                self.invalid(skt, "invalid id")
+                self.invalid(skt, "invalid id " + args[0])
         elif command == "GUESTING":
             if args[0] == 'id':                                         # client is giving an id
                 if self.active_hosts.is_id(args[1]):                    # if id is in correct format
@@ -140,7 +142,9 @@ class Server:
                         self.waiting_clients.remove(host)
                         thread.start()
                     else:
-                        self.messages.append((skt, "RETRY 10"))
+                        self.messages.append((skt, self.protocol("retry", '3')))
+                else:
+                    self.messages.append((skt, self.protocol("retry", '3')))
 
     def handle_communication(self, host: socket.socket, guest: socket.socket):
         """
@@ -163,6 +167,7 @@ class Server:
                 # read from host
                 if host in rlist:
                     data = host.recv(Server.max_buffer).decode()
+                    print(data)
                     if data == "":  # if client closed disconnected
                         clients.remove(host)
                         messages.append((guest, self.protocol('abort', "The other end disconnected")))
@@ -184,6 +189,7 @@ class Server:
                 # read from guest
                 if guest in rlist:
                     data = guest.recv(Server.max_buffer).decode()
+                    print(data)
                     if data == "":              # if client closed disconnected
                         clients.remove(guest)
                         messages.append((host, self.protocol('abort', "The other end disconnected")))
@@ -242,10 +248,14 @@ class Server:
                         self.waiting_clients.append(client_sock)
                     else:                           # communication with client that is in process of a connection
                         data = s.recv(Server.max_buffer).decode()
+                        print('received ' + data)
                         if data == "":              # if client closed disconnected
                             self.waiting_clients.remove(s)
                         else:
-                            self.handle_connection(data, s)
+                            try:
+                                self.handle_connection(data, s)
+                            except ValueError():
+                                s.close()
                 # write
                 for msg in self.messages:
                     s = msg[0]
@@ -287,11 +297,11 @@ class Server:
         :return: if data is valid returns list with command and arguments, if not returns empty list
         """
         split = data.split()
-        if (split[0] not in Server.commands) or (data[-2:] != ';'):
+        if (split[0] not in Server.commands) or (data[-2:] != ';;'):
             return []
         elif split[0] == "PRESENT" and len(split) == 2 and len(split[1]) == Server.id_length + 2:
             return [split[0], split[1][:-2]]
-        elif split[0] == "GUESTING" and len(split) == 3:
+        elif split[0] == "GUESTING" and (split[1] == 'id' or split[1] == 'password'):
             return [split[0], split[1], split[2][:-2]]
         else:
             return []

@@ -9,6 +9,7 @@ import uuid
 import platform
 import hashlib
 from random import choice
+import threading
 
 
 CHARS = string.ascii_letters + string.digits
@@ -29,7 +30,8 @@ class DataBase:
 
     def __init__(self):
         """ creates database with user (id, password) values """
-        self.conn = sqlite3.connect(':memory:')
+        self.lock = threading.Lock()
+        self.conn = sqlite3.connect(':memory:', check_same_thread=False)
         self.c = self.conn.cursor()
         self.c.execute("""CREATE TABLE user (
                         id text,
@@ -55,7 +57,11 @@ class DataBase:
         Gets the user unique id
         :return: id
         """
-        self.c.execute("SELECT id FROM user")
+        try:
+            self.lock.acquire(True)
+            self.c.execute("SELECT id FROM user")
+        finally:
+            self.lock.release()
         identifier = self.c.fetchone()[0]
         self.conn.commit()
         return identifier
@@ -65,14 +71,22 @@ class DataBase:
         Updates the password value in the database
         :param password: new password to set
         """
-        self.c.execute("UPDATE user SET password = :password", {'password': password})
+        try:
+            self.lock.acquire(True)
+            self.c.execute("UPDATE user SET password = :password", {'password': password})
+        finally:
+            self.lock.release()
 
     def get_password(self):
         """
         Gets the user password
         :return: the password
         """
-        self.c.execute("SELECT password FROM user")
+        try:
+            self.lock.acquire(True)
+            self.c.execute("SELECT password FROM user")
+        finally:
+            self.lock.release()
         password = self.c.fetchone()[0]
         self.conn.commit()
         return password

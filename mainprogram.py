@@ -9,9 +9,9 @@ from tkinter import Tk
 from menu import MainMenu, PasswordMenu, VisualizeMenu
 from client import ClientHost, ClientGuest
 from datacomp import ScreenEncode
-import cv2 as cv
 import socket
 import threading
+import ssl
 
 
 class GuestMode:
@@ -78,24 +78,17 @@ class GuestMode:
         self.visual_menu()
 
 
-def main():
-    """ Combines all the program functionalities and runs it"""
-    db = DataBase()
-    skt = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    guest = ClientGuest('127.0.0.1', db.get_id(), skt)
-    mode_handler = GuestMode(db, guest)
-    thread = threading.Thread(target=mode_handler.run, name="GuestThread")
-
-    host = ClientHost('127.0.0.1', db.get_id(), skt)
-    host.start_host()                               # first present as a host
-    thread.start()                                  # be prepared for guest mode
+def handle_hosting(db, skt, context, server_ip):
+    """ Handles hosting """
+    host = ClientHost(server_ip, db.get_id(), skt, context)
+    host.start_host()  # first present as a host
     host_mode = False
     while True:
         password = host.communicate()
         if password is not None:
             if password == db.get_password():
-                host.message_server(host.protocol('connect', str(host.client_port+3)))
-                host.connect_host()         # this blocks
+                host.message_server(host.protocol('connect', str(host.client_port + 3)))
+                host.connect_host()  # this blocks
                 host_mode = True
                 break
             elif password == '-1':
@@ -112,6 +105,35 @@ def main():
                 encoder.capture()
         finally:
             encoder.close()
+
+
+def create_secure_client(ip):
+    """
+    Creates secure client socket over ssl
+    :param ip: servers ip
+    """
+    # create ssl context
+    context = ssl.create_default_context()
+    # allow self-signed certificates
+    context.check_hostname = False
+    context.verify_mode = ssl.CERT_NONE
+    # secured tcp socket
+    tcp_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    secure_client = context.wrap_socket(tcp_client, server_hostname=ip)
+    return secure_client, context
+
+
+def main():
+    """ Combines all the program functionalities and runs it"""
+    server_ip = '127.0.0.1'
+    db = DataBase()
+    skt, context = create_secure_client(server_ip)               # creates an SSL socket (SSL socket, SSL context)
+    guest = ClientGuest(server_ip, db.get_id(), skt, context)
+    guest_handler = GuestMode(db, guest)
+    thread = threading.Thread(target=handle_hosting, args=(db, skt, context, server_ip), name="GuestThread")
+    thread.start()              # hosting mode ready
+
+    guest_handler.run()
 
     thread.join()
     db.close()
