@@ -62,7 +62,7 @@ class GuestMode:
     def password_menu(self):
         """ Runs tkinter password window """
         menu = PasswordMenu(self.root)
-        menu.send_password()
+        menu.send_password(self.connect_password_handler)
         self.root.mainloop()
 
     def main_menu(self):

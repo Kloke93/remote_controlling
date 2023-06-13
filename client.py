@@ -8,6 +8,51 @@ import socket
 import ssl
 import select
 from dataexct import UseKeyBoard, UseMouse
+from OpenSSL import crypto
+import os
+
+
+def cert_gen():
+    """
+    Generates a self-signed certificate and a private key
+    based on https://stackoverflow.com/questions/27164354/create-a-self-signed-x509-certificate-in-python
+    """
+    email_address = "emailAddress"
+    common_name = "commonName"
+    country_name = "NT"
+    locality_name = "localityName"
+    state_or_province_name = "stateOrProvinceName"
+    organization_name = "organizationName"
+    organization_unit_name = "organizationUnitName"
+    serial_number = 0
+    validity_start_in_seconds = 0
+    validity_end_in_seconds = 365 * 24 * 60 * 60   # 1 year
+    cert_file = 'certificate.crt'
+    key_file = 'privatekey.key'
+
+    # generate key
+    key = crypto.PKey()
+    key.generate_key(crypto.TYPE_RSA, 4096)
+    # create self-signed certificate
+    cert = crypto.X509()
+    cert.get_subject().C = country_name
+    cert.get_subject().ST = state_or_province_name
+    cert.get_subject().L = locality_name
+    cert.get_subject().O = organization_name
+    cert.get_subject().OU = organization_unit_name
+    cert.get_subject().CN = common_name
+    cert.get_subject().emailAddress = email_address
+    cert.set_serial_number(serial_number)
+    cert.gmtime_adj_notBefore(0)
+    cert.gmtime_adj_notAfter(validity_end_in_seconds)
+    cert.set_issuer(cert.get_subject())
+    cert.set_pubkey(key)
+    cert.sign(key, 'sha256')
+
+    with open(cert_file, "wt") as f:
+        f.write(crypto.dump_certificate(crypto.FILETYPE_PEM, cert).decode("utf-8"))
+    with open(key_file, "wt") as f:
+        f.write(crypto.dump_privatekey(crypto.FILETYPE_PEM, key).decode("utf-8"))
 
 
 class Client:
@@ -257,6 +302,9 @@ class ClientHost(Client):
         """
         try:
             super().present()
+            if not (os.path.exists(ClientHost.cert) and os.path.exists(ClientHost.key)):
+                # if there is no certificate it creates one
+                cert_gen()
             self.connection_host.bind(('0.0.0.0', Client.client_port+3))             # accepts a connection from anyone
             self.connection_host.listen(ClientHost.listen_size)
             self.secure_connect = self.context.wrap_socket(self.connection_host, server_side=True)
