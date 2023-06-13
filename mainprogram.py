@@ -55,7 +55,8 @@ class GuestMode:
 
     def visual_menu(self):
         """ Runs tkinter visualize menu """
-        VisualizeMenu(self.root, self.guest.secure_guest)
+        menu = VisualizeMenu(self.root, self.guest.secure_guest)
+        self.root.after(0, menu.update_image())
         self.root.mainloop()
 
     def password_menu(self):

@@ -3,7 +3,9 @@ Author: Tomas Dal Farra
 Date: 04/06/2023
 Description: Implements the GUI for Remote-Controlling
 """
+import sys
 from tkinter import Tk, Label, Button, Entry, StringVar
+import cv2 as cv
 from inputsend import InputKeySend, InputMouseSend
 from datacomp import StreamDecode
 import socket
@@ -168,7 +170,7 @@ class DisconnectMenu(Menu):
 class VisualizeMenu:
     """ Class to see video stream """
 
-    def __init__(self, master: Tk, sock: socket.socket=1, width=1920, height=1080):
+    def __init__(self, master: Tk, sock: socket.socket, width=1920, height=1080):
         """
         Creates an instance of VisualizeMenu
         :param master: tkinter Tk instance (root)
@@ -178,20 +180,26 @@ class VisualizeMenu:
         self.master = master
         self.master.geometry(f'{width}x{height}')
         self.displayer = Label(self.master)
+        self.displayer.pack()
         # sending events
         InputMouseSend(self.master, sock)
         InputKeySend(self.master, sock)
         # decoder
-        # ip, port = sock.getpeername()
-        self.decoder = StreamDecode(f'udp://{ip}:{port}', 1920, 1080)
+        ip, port = sock.getpeername()
+        self.width = width
+        self.height = height
+        self.decoder = StreamDecode(width, height, f'udp://{ip}:{port}')
         self.decoder.run_decoder()
 
     def update_image(self):
         """ Updates images that we are seeing """
-        image = Image.fromarray(self.decoder.read_stdout())
+        sys.stdout.flush()
+        image = self.decoder.read_stdout()
+        image = Image.frombytes('RGB', (self.width, self.height), image)
         image = ImageTk.PhotoImage(image)
         self.displayer.configure(image=image)
-        self.master.after(10, self.update_image)
+        self.displayer.update()
+        self.master.after(1, self.update_image)
 
 
 def main():
@@ -200,8 +208,11 @@ def main():
     # PasswordMenu(root)
     # DisconnectMenu(root)
     menu = VisualizeMenu(root)
-    root.after(0, menu.update_image)
-    root.mainloop()
+    try:
+        root.after(0, menu.update_image)
+        root.mainloop()
+    finally:
+        menu.decoder.close()
 
 
 if __name__ == "__main__":

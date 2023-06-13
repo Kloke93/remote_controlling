@@ -95,13 +95,13 @@ class StreamDecode:
         self.process = (
             ffmpeg
             .input(
-                self.url, format='h264', pix_fmt='yuv420p',
-                s=f'{self.width}x{self.height}'
+                self.url, format='h264'
             )
             .output(
                 'pipe:',  # output to stdout
-                codec='libavcodec', format='rawvideo', pix_fmt='rgb24',  # encoding format
-                tune='zerolatency', preset='ultrafast', crf='23',  # quality and speed to encode
+                format='rawvideo', pix_fmt='rgb24',                 # decoding format
+                tune='zerolatency', preset='ultrafast', crf='23',   # quality and speed to encode
+                s=f'{self.width}x{self.height}'
             )
             # if url is stdout so it opens the pipe
             .run_async(pipe_stdin=(StreamDecode.standard_url == self.url), pipe_stdout=True)
@@ -111,7 +111,7 @@ class StreamDecode:
         """
         Writes from stdout rgb width * height
         """
-        self.process.stdout.read(self.width * self.height * 3)
+        return self.process.stdout.read(self.width * self.height * 3)
 
     def close(self):
         """ Closes the ffmpeg process """
