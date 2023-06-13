@@ -10,6 +10,7 @@ import select
 from dataexct import UseKeyBoard, UseMouse
 from OpenSSL import crypto
 import os
+import threading
 
 
 def cert_gen():
@@ -63,19 +64,21 @@ class Client:
     # available commands that arrive to client
     commands = ["GUESTING", "REQUEST", "ABORT", "RETRY", "CONNECT"]
 
-    def __init__(self, ip, user_id, sock, context):
+    def __init__(self, ip, user_id, sock, context, lock):
         """
         Initiates client communication sockets
         :param ip: servers ip
         :param user_id: unique id of the user
         :param sock: socket descriptor to communicate with server (better if its over ssl)
         :param context: ssl context
+        :param lock: threading lock to organize host and guest actions
         """
         self.id = user_id
         self.server_ip = ip
         self.server_address = (self.server_ip, Client.server_port)
         self.context = context
         self.secure_client = sock
+        self.lock = lock
 
     def present(self):
         """ starts client communication, connects to server and sends present """
@@ -135,15 +138,16 @@ class Client:
 class ClientGuest(Client):
     """ Client communications for guest mode """
 
-    def __init__(self, server_ip, user_id, sock, context):
+    def __init__(self, server_ip, user_id, sock, context, lock):
         """
         initializes the guest socket
         :param server_ip: servers ip
         :param user_id: unique id of the user
         :param sock: socket descriptor
         :param context: ssl context
+        :param lock: threading lock to organize host and guest actions
         """
-        super().__init__(server_ip, user_id, sock, context)
+        super().__init__(server_ip, user_id, sock, context, lock)
 
         self.guest = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.guest.setblocking(False)
@@ -158,9 +162,11 @@ class ClientGuest(Client):
         """
         # Adapts server connection for guest mode
         if not self.guest_mode:
-            self.secure_client.setblocking(True)  # communication with the server blocks
-            self.secure_client.settimeout(120)  # if server does not answer in two minutes something happened
+            self.lock.acquire(True)
+            self.secure_client.setblocking(True)    # communication with the server blocks
+            self.secure_client.settimeout(120)      # if server does not answer in two minutes something happened
             self.guest_mode = True
+            self.lock.release()
         # ---------------------------------------
         self.secure_client.send(self.protocol('guesting', 'id', host_id).encode())
         data = self.secure_client.recv(Client.max_buffer).decode()
@@ -224,15 +230,16 @@ class ClientHost(Client):
     # possible commands from a guest to execute
     exct_commands = ('MOUSEPRESS', 'MOUSERELEASE', 'MOUSEMOVE', 'MOUSESCROLL', 'KEYPRESS', 'KEYRELEASE')
 
-    def __init__(self, server_ip, user_id, sock, context):
+    def __init__(self, server_ip, user_id, sock, context, lock):
         """
         initializes the host socket
         :param server_ip: servers ip
         :param user_id: unique id of the user
         :param sock: socket descriptor
         :param context: ssl context
+        :param lock: threading lock to organize host and guest actions
         """
-        super().__init__(server_ip, user_id, sock, context)
+        super().__init__(server_ip, user_id, sock, context, lock)
         # ssl context
         if not (os.path.exists(ClientHost.cert) and os.path.exists(ClientHost.key)):
             # if there is no certificate it creates one
@@ -259,6 +266,7 @@ class ClientHost(Client):
     def communicate(self):
         """ Communicates with server """
         value = None            # does not return
+        self.lock.acquire(True)
         if not self.secure_client.getblocking():
             rlist, wlist, xlist = select.select([self.secure_client], [self.secure_client], [self.secure_client])
 
@@ -268,8 +276,12 @@ class ClientHost(Client):
                 raise socket.error("Error in the server connection")
             # read
             for s in rlist:
-                data = s.recv(Client.max_buffer).decode()
-                print(data)
+                try:
+                    data = s.recv(Client.max_buffer).decode()
+                    print(data)
+                except ssl.SSLWantReadError:
+                    # https://docs.python.org/3/library/ssl.html notes on non-blocking sockets
+                    continue
 
                 if data == "":
                     # disconnect
@@ -291,6 +303,7 @@ class ClientHost(Client):
                     self.messages.remove(message)
         else:
             value = '-1'
+        self.lock.release()
         return value
 
     def connect_host(self):
@@ -310,7 +323,8 @@ class ClientHost(Client):
         """
         try:
             super().present()
-            self.connection_host.bind(('0.0.0.0', Client.client_port+3))             # accepts a connection from anyone
+            self.secure_client.setblocking(False)
+            self.connection_host.bind(('0.0.0.0', Client.client_port))             # accepts a connection from anyone
             self.connection_host.listen(ClientHost.listen_size)
             self.secure_connect = self.context.wrap_socket(self.connection_host, server_side=True)
         except socket.error as err:

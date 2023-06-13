@@ -79,16 +79,16 @@ class GuestMode:
         self.visual_menu()
 
 
-def handle_hosting(db, skt, context, server_ip):
+def handle_hosting(db, skt, context, server_ip, lock):
     """ Handles hosting """
-    host = ClientHost(server_ip, db.get_id(), skt, context)
+    host = ClientHost(server_ip, db.get_id(), skt, context, lock)
     host.start_host()  # first present as a host
     host_mode = False
     while True:
         password = host.communicate()
         if password is not None:
             if password == db.get_password():
-                host.message_server(host.protocol('connect', str(host.client_port + 3)))
+                host.message_server(host.protocol('connect', str(host.client_port)))
                 host.connect_host()  # this blocks
                 host_mode = True
                 break
@@ -129,9 +129,10 @@ def main():
     server_ip = '127.0.0.1'
     db = DataBase()
     skt, context = create_secure_client(server_ip)               # creates an SSL socket (SSL socket, SSL context)
-    guest = ClientGuest(server_ip, db.get_id(), skt, context)
+    lock = threading.Lock()
+    guest = ClientGuest(server_ip, db.get_id(), skt, context, lock)
     guest_handler = GuestMode(db, guest)
-    thread = threading.Thread(target=handle_hosting, args=(db, skt, context, server_ip), name="GuestThread")
+    thread = threading.Thread(target=handle_hosting, args=(db, skt, context, server_ip, lock), name="HostThread")
     thread.start()              # hosting mode ready
 
     guest_handler.run()
