@@ -171,20 +171,20 @@ class Server:
                     if data == "":  # if client closed disconnected
                         clients.remove(host)
                         messages.append((guest, self.protocol('abort', "The other end disconnected")))
-                    data = self.valid(data)     # data processed
+                    else:
+                        data = self.valid(data)     # data processed
+                        if not data:                # if data isn't valid
+                            messages.append((host, self.protocol('abort', "invalid protocol")))
+                            messages.append((guest, self.protocol('abort', "invalid protocol from the host")))
 
-                    if not data:                # if data isn't valid
-                        messages.append((host, self.protocol('abort', "invalid protocol")))
-                        messages.append((guest, self.protocol('abort', "invalid protocol from the host")))
-
-                    command = data[0]           # command in data
-                    args = data[1:]             # arguments of the command
-                    if command == "RETRY":
-                        messages.append([host, "RETRY 1;"])     # add time progressively
-                    elif command == "CONNECT":
-                        messages.append([host, (host.getpeername()[0], args[0])])
-                    elif command == "CONNECTED":
-                        clients.remove(host)
+                        command = data[0]           # command in data
+                        args = data[1:]             # arguments of the command
+                        if command == "RETRY":
+                            messages.append([host, "RETRY 1;"])     # add time progressively
+                        elif command == "CONNECT":
+                            messages.append([host, (host.getpeername()[0], args[0])])
+                        elif command == "CONNECTED":
+                            clients.remove(host)
 
                 # read from guest
                 if guest in rlist:
@@ -193,22 +193,23 @@ class Server:
                     if data == "":              # if client closed disconnected
                         clients.remove(guest)
                         messages.append((host, self.protocol('abort', "The other end disconnected")))
+                    else:
+                        data = self.valid(data)     # data processed
+                        if not data:                # if data isn't valid
+                            messages.append((guest, self.protocol('abort', "invalid protocol")))
+                            messages.append((host, self.protocol('abort', "invalid protocol from the guest")))
 
-                    data = self.valid(data)     # data processed
-                    if not data:                # if data isn't valid
-                        messages.append((guest, self.protocol('abort', "invalid protocol")))
-                        messages.append((host, self.protocol('abort', "invalid protocol from the guest")))
-
-                    command = data[0]           # command in data
-                    args = data[1:]             # arguments of the command
-                    if command == "GUESTING":
-                        if args[0] == 'password':
-                            messages.append([guest, f"GUESTING {args[0]} {args[1]}"])
-                    elif command == "CONNECTED":
-                        clients.remove(guest)
+                        command = data[0]           # command in data
+                        args = data[1:]             # arguments of the command
+                        if command == "GUESTING":
+                            if args[0] == 'password':
+                                messages.append([host, self.protocol('guesting', args[0], args[1])])
+                        elif command == "CONNECTED":
+                            clients.remove(guest)
 
                 # write
                 for msg in messages:
+                    print(msg)
                     s = msg[0]
                     if s in wlist:
                         s.send(msg[1].encode())

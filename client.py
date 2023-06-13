@@ -80,7 +80,7 @@ class Client:
     def present(self):
         """ starts client communication, connects to server and sends present """
         # try
-        self.secure_client.connect((self.server_ip, 5010))
+        self.secure_client.connect((self.server_ip, Client.server_port))
         self.secure_client.send(f'PRESENT {self.id};;'.encode())
         # except socket.error
 
@@ -185,6 +185,7 @@ class ClientGuest(Client):
         """
         self.secure_client.send(self.protocol('guesting', 'password', password).encode())
         data = self.secure_client.recv(Client.max_buffer).decode()
+        print(data)
         data = self.valid(data)
         if data:
             if data[0] == "CONNECT" and data[2].isnumeric():
@@ -195,6 +196,8 @@ class ClientGuest(Client):
                 raise Exception(data[1])
             else:
                 raise ValueError("Not an appropriate answer from the server")
+        else:
+            raise ValueError("Not an appropriate answer from the server")
 
     def connect_to_host(self, ip: str, port: int) -> bool:
         """
@@ -231,6 +234,9 @@ class ClientHost(Client):
         """
         super().__init__(server_ip, user_id, sock, context)
         # ssl context
+        if not (os.path.exists(ClientHost.cert) and os.path.exists(ClientHost.key)):
+            # if there is no certificate it creates one
+            cert_gen()
         self.context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         self.context.load_cert_chain(ClientHost.cert, ClientHost.key)
 
@@ -276,6 +282,8 @@ class ClientHost(Client):
                     if command:
                         if command[0] == "GUESTING" and command[1] == "password":
                             value = command[2]          # will return the password received
+                        elif command[0] == "ABORT":
+                            raise Exception(command[1])
             # write
             for message in self.messages:
                 if self.secure_client in wlist:
@@ -302,9 +310,6 @@ class ClientHost(Client):
         """
         try:
             super().present()
-            if not (os.path.exists(ClientHost.cert) and os.path.exists(ClientHost.key)):
-                # if there is no certificate it creates one
-                cert_gen()
             self.connection_host.bind(('0.0.0.0', Client.client_port+3))             # accepts a connection from anyone
             self.connection_host.listen(ClientHost.listen_size)
             self.secure_connect = self.context.wrap_socket(self.connection_host, server_side=True)

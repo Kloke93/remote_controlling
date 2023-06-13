@@ -141,7 +141,7 @@ class PasswordMenu(Menu):
         :param target: Target function of the button
         It is supposed to be targeted to some socket send password function
         """
-        self.send_password.configure(text="Update", command=lambda: target(self.host_password.get()))
+        self.send_password.configure(text="Send", command=lambda: target(self.host_password.get()))
 
 
 class DisconnectMenu(Menu):

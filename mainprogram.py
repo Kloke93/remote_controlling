@@ -35,7 +35,7 @@ class GuestMode:
         sec = self.guest.connect_id(host_id)
         if sec == -1:
             self.root.destroy()
-            self.root = Tk()
+            # self.root = Tk()
         else:
             # temporal
             time.sleep(sec)
@@ -51,7 +51,6 @@ class GuestMode:
         else:
             if self.guest.connect_to_host(ip, port):
                 self.root.destroy()
-                self.root = Tk()
 
     def visual_menu(self):
         """ Runs tkinter visualize menu """
@@ -62,14 +61,16 @@ class GuestMode:
     def password_menu(self):
         """ Runs tkinter password window """
         menu = PasswordMenu(self.root)
-        menu.send_password(self.connect_password_handler)
+        menu.send_to(self.connect_password_handler)
         self.root.mainloop()
+        self.root = Tk()
 
     def main_menu(self):
         """ Runs tkinter main window """
         menu = MainMenu(self.root, self.db.get_id(), self.db.get_password())
         menu.connect_to(self.connect_id_handler)
         self.root.mainloop()
+        self.root = Tk()
 
     def run(self):
         """ Runs the program """
