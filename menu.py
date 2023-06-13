@@ -7,7 +7,7 @@ from tkinter import Tk, Label, Button, Entry, StringVar
 from inputsend import InputKeySend, InputMouseSend
 from datacomp import StreamDecode
 import socket
-from
+from PIL import ImageTk, Image
 
 
 class Menu:
@@ -168,7 +168,7 @@ class DisconnectMenu(Menu):
 class VisualizeMenu:
     """ Class to see video stream """
 
-    def __init__(self, master: Tk, sock: socket.socket, width=1920, height=1080):
+    def __init__(self, master: Tk, sock: socket.socket=1, width=1920, height=1080):
         """
         Creates an instance of VisualizeMenu
         :param master: tkinter Tk instance (root)
@@ -177,18 +177,20 @@ class VisualizeMenu:
         """
         self.master = master
         self.master.geometry(f'{width}x{height}')
-        self.displayer = Label(self.master, image=)
+        self.displayer = Label(self.master)
         # sending events
         InputMouseSend(self.master, sock)
         InputKeySend(self.master, sock)
         # decoder
-        ip, port = sock.getpeername()
-        decoder = StreamDecode(f'udp://{ip}:{port}', 1920, 1080)
-        decoder.run_decoder()
+        # ip, port = sock.getpeername()
+        self.decoder = StreamDecode(f'udp://{ip}:{port}', 1920, 1080)
+        self.decoder.run_decoder()
 
     def update_image(self):
         """ Updates images that we are seeing """
-
+        image = Image.fromarray(self.decoder.read_stdout())
+        image = ImageTk.PhotoImage(image)
+        self.displayer.configure(image=image)
         self.master.after(10, self.update_image)
 
 
@@ -196,7 +198,9 @@ def main():
     root = Tk()
     # MainMenu(root, 'abc123456789', 'messi123')
     # PasswordMenu(root)
-    DisconnectMenu(root)
+    # DisconnectMenu(root)
+    menu = VisualizeMenu(root)
+    root.after(0, menu.update_image)
     root.mainloop()
 
 
