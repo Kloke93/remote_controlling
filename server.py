@@ -176,15 +176,15 @@ class Server:
                         if not data:                # if data isn't valid
                             messages.append((host, self.protocol('abort', "invalid protocol")))
                             messages.append((guest, self.protocol('abort', "invalid protocol from the host")))
-
-                        command = data[0]           # command in data
-                        args = data[1:]             # arguments of the command
-                        if command == "RETRY":
-                            messages.append([host, "RETRY 1;"])     # add time progressively
-                        elif command == "CONNECT":
-                            messages.append([host, (host.getpeername()[0], args[0])])
-                        elif command == "CONNECTED":
-                            clients.remove(host)
+                        else:
+                            command = data[0]           # command in data
+                            args = data[1:]             # arguments of the command
+                            if command == "RETRY":
+                                messages.append([host, "RETRY 1;"])     # add time progressively
+                            elif command == "CONNECT":
+                                messages.append([guest, self.protocol(command, host.getpeername()[0], args[0])])
+                            elif command == "CONNECTED":
+                                clients.remove(host)
 
                 # read from guest
                 if guest in rlist:
@@ -304,6 +304,8 @@ class Server:
             return [split[0], split[1][:-2]]
         elif split[0] == "GUESTING" and (split[1] == 'id' or split[1] == 'password'):
             return [split[0], split[1], split[2][:-2]]
+        elif split[0] == "CONNECT" and len(split) == 2:
+            return [split[0], split[1][:-2]]
         else:
             return []
 

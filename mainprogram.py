@@ -89,6 +89,7 @@ def handle_hosting(db, skt, context, server_ip, lock):
         if password is not None:
             if password == db.get_password():
                 host.message_server(host.protocol('connect', str(host.client_port)))
+                host.communicate()
                 host.connect_host()  # this blocks
                 host_mode = True
                 break

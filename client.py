@@ -10,7 +10,6 @@ import select
 from dataexct import UseKeyBoard, UseMouse
 from OpenSSL import crypto
 import os
-import threading
 
 
 def cert_gen():
@@ -251,6 +250,7 @@ class ClientHost(Client):
         self.secure_connect = None         # SSL wrapped socket to establish a connection
         self.secure_host = None            # # SSL wrapped socket when we already know the guest
         self.messages = []
+        self.hosting_sockets = [self.secure_connect]
 
         # hardware
         self.keyboard = UseKeyBoard()
@@ -307,8 +307,9 @@ class ClientHost(Client):
         return value
 
     def connect_host(self):
-        """ Connects host server to have a connection with a guest """
-        self.secure_host, _ = self.secure_connect.accept()
+        """ Connects to guest """
+        while self.hosting_sockets[0] == self.secure_connect:
+            self.hosting()
 
     def get_guest(self) -> tuple[str, int]:
         """
@@ -326,33 +327,44 @@ class ClientHost(Client):
             self.secure_client.setblocking(False)
             self.connection_host.bind(('0.0.0.0', Client.client_port))             # accepts a connection from anyone
             self.connection_host.listen(ClientHost.listen_size)
+            self.connection_host.setblocking(False)
             self.secure_connect = self.context.wrap_socket(self.connection_host, server_side=True)
         except socket.error as err:
             logging.critical(err)
 
     def hosting(self):
         """ Handles communication with a guest """
-        rlist, _, xlist = select.select([self.secure_host], [], [self.secure_host])
+        rlist, _, xlist = select.select(self.hosting_sockets, [], self.hosting_sockets)
         # exception
         for s in xlist:
             s.close()
             raise socket.error("Error in the host connection")
         # read
         for s in rlist:
-            data = s.recv(Client.max_buffer).decode()
-            print(data)
+            # connect host to guest
+            if s is self.secure_connect:
+                self.secure_host, _ = self.secure_connect.accept()
+                self.hosting_sockets.remove(self.secure_connect)
+                self.hosting_sockets.append(self.secure_host)
+            # communication with guest
+            else:
+                try:
+                    data = s.recv(Client.max_buffer).decode()
+                    print(data)
+                except ssl.SSLWantReadError:
+                    continue
 
-            if data == "":
-                # disconnect
-                self.secure_client.close()
+                if data == "":
+                    # disconnect
+                    self.secure_client.close()
 
-            messages = data.split(";;")        # separate between messages
-            for message in messages:
-                message = self.valid_exct(message)
-                if message:
-                    command = message[0]
-                    args = message[1:]
-                    self.handle_exct(command, *args)
+                messages = data.split(";;")        # separate between messages
+                for message in messages:
+                    message = self.valid_exct(message)
+                    if message:
+                        command = message[0]
+                        args = message[1:]
+                        self.handle_exct(command, *args)
 
     def handle_exct(self, command, *args):
         """
