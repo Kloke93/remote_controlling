@@ -188,7 +188,7 @@ class VisualizeMenu:
         ip, port = sock.getpeername()
         self.width = width
         self.height = height
-        self.decoder = StreamDecode(width, height, f'udp://{ip}:{port}')
+        self.decoder = StreamDecode(width, height, f'udp://{ip}:{port-1}')
         self.decoder.run_decoder()
 
     def update_image(self):

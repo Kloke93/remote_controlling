@@ -63,19 +63,17 @@ class Client:
     # available commands that arrive to client
     commands = ["GUESTING", "REQUEST", "ABORT", "RETRY", "CONNECT"]
 
-    def __init__(self, ip, user_id, sock, context, lock):
+    def __init__(self, ip, user_id, sock, lock):
         """
         Initiates client communication sockets
         :param ip: servers ip
         :param user_id: unique id of the user
         :param sock: socket descriptor to communicate with server (better if its over ssl)
-        :param context: ssl context
         :param lock: threading lock to organize host and guest actions
         """
         self.id = user_id
         self.server_ip = ip
         self.server_address = (self.server_ip, Client.server_port)
-        self.context = context
         self.secure_client = sock
         self.lock = lock
 
@@ -137,16 +135,20 @@ class Client:
 class ClientGuest(Client):
     """ Client communications for guest mode """
 
-    def __init__(self, server_ip, user_id, sock, context, lock):
+    def __init__(self, server_ip, user_id, sock, lock):
         """
         initializes the guest socket
         :param server_ip: servers ip
         :param user_id: unique id of the user
         :param sock: socket descriptor
-        :param context: ssl context
         :param lock: threading lock to organize host and guest actions
         """
-        super().__init__(server_ip, user_id, sock, context, lock)
+        super().__init__(server_ip, user_id, sock, lock)
+
+        self.context = ssl.create_default_context()
+        # allow self-signed certificates
+        self.context.check_hostname = False
+        self.context.verify_mode = ssl.CERT_NONE
 
         self.guest = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.guest.setblocking(False)
@@ -229,16 +231,15 @@ class ClientHost(Client):
     # possible commands from a guest to execute
     exct_commands = ('MOUSEPRESS', 'MOUSERELEASE', 'MOUSEMOVE', 'MOUSESCROLL', 'KEYPRESS', 'KEYRELEASE')
 
-    def __init__(self, server_ip, user_id, sock, context, lock):
+    def __init__(self, server_ip, user_id, sock, lock):
         """
         initializes the host socket
         :param server_ip: servers ip
         :param user_id: unique id of the user
         :param sock: socket descriptor
-        :param context: ssl context
         :param lock: threading lock to organize host and guest actions
         """
-        super().__init__(server_ip, user_id, sock, context, lock)
+        super().__init__(server_ip, user_id, sock, lock)
         # ssl context
         if not (os.path.exists(ClientHost.cert) and os.path.exists(ClientHost.key)):
             # if there is no certificate it creates one

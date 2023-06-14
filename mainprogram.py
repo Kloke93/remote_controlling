@@ -79,9 +79,9 @@ class GuestMode:
         self.visual_menu()
 
 
-def handle_hosting(db, skt, context, server_ip, lock):
+def handle_hosting(db, skt, server_ip, lock):
     """ Handles hosting """
-    host = ClientHost(server_ip, db.get_id(), skt, context, lock)
+    host = ClientHost(server_ip, db.get_id(), skt, lock)
     host.start_host()  # first present as a host
     host_mode = False
     while True:
@@ -99,7 +99,7 @@ def handle_hosting(db, skt, context, server_ip, lock):
                 host.message_server(host.protocol('retry', '0'))
     if host_mode:
         ip, port = host.get_guest()
-        encoder = ScreenEncode(f'udp://{ip}:{port}')
+        encoder = ScreenEncode(f'udp://{ip}:{port-1}')
         encoder.run_encoder()
         try:
             while True:
@@ -131,9 +131,9 @@ def main():
     db = DataBase()
     skt, context = create_secure_client(server_ip)               # creates an SSL socket (SSL socket, SSL context)
     lock = threading.Lock()
-    guest = ClientGuest(server_ip, db.get_id(), skt, context, lock)
+    guest = ClientGuest(server_ip, db.get_id(), skt, lock)
     guest_handler = GuestMode(db, guest)
-    thread = threading.Thread(target=handle_hosting, args=(db, skt, context, server_ip, lock), name="HostThread")
+    thread = threading.Thread(target=handle_hosting, args=(db, skt, server_ip, lock), name="HostThread")
     thread.start()              # hosting mode ready
 
     guest_handler.run()
