@@ -248,9 +248,9 @@ class ClientHost(Client):
 
         self.connection_host = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.secure_connect = None         # SSL wrapped socket to establish a connection
-        self.secure_host = None            # # SSL wrapped socket when we already know the guest
+        self.secure_host = None            # SSL wrapped socket when we already know the guest
         self.messages = []
-        self.hosting_sockets = [self.secure_connect]
+        self.hosting_sockets = []          # sockets to communicate with guest
 
         # hardware
         self.keyboard = UseKeyBoard()
@@ -329,6 +329,7 @@ class ClientHost(Client):
             self.connection_host.listen(ClientHost.listen_size)
             self.connection_host.setblocking(False)
             self.secure_connect = self.context.wrap_socket(self.connection_host, server_side=True)
+            self.hosting_sockets.append(self.secure_connect)
         except socket.error as err:
             logging.critical(err)
 
