@@ -85,7 +85,7 @@ class Client:
         # except socket.error
 
     def connected(self):
-        """"""
+        """ Sends connected to server to end their connection (it is now connected point to point) """
         self.secure_client.send(self.protocol('connected').encode())
         self.secure_client.close()
 
@@ -101,7 +101,10 @@ class Client:
         # COMMAND arg1 arg2 ... arg;;
         command = command.upper()
         args = " ".join(args)
-        return f"{command} {args};;"
+        if args:
+            return f"{command} {args};;"
+        else:
+            return f"{command};;"
 
     @staticmethod
     def valid(data: str) -> list:
@@ -151,7 +154,6 @@ class ClientGuest(Client):
         self.context.verify_mode = ssl.CERT_NONE
 
         self.guest = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.guest.setblocking(False)
         self.secure_guest = None         # SSL wrapped socket when we already know the
         self.guest_mode = False          # server communication blocks?
 
@@ -217,6 +219,7 @@ class ClientGuest(Client):
             self.secure_guest = self.context.wrap_socket(self.guest, server_hostname=ip)
             self.secure_guest.connect((ip, port))
             print("connected to host")
+            self.connected()
             return True
         except socket.error:
             return False
@@ -309,15 +312,19 @@ class ClientHost(Client):
 
     def connect_host(self):
         """ Connects to guest """
-        while self.hosting_sockets[0] == self.secure_connect:
-            self.hosting()
+        try:
+            while self.hosting_sockets[0] == self.secure_connect:
+                self.hosting()
+            return True
+        except socket.error:
+            return False
 
-    def get_guest(self) -> tuple[str, int]:
+    def get_guest(self) -> str:
         """
-        Gets guest's address
-        :return: guest's address (ip, port)
+        Gets guest's ip
+        :return: guest's address ip
         """
-        return self.secure_host.getpeername()
+        return self.secure_host.getpeername()[0]
 
     def start_host(self):
         """

@@ -55,8 +55,11 @@ class GuestMode:
     def visual_menu(self):
         """ Runs tkinter visualize menu """
         menu = VisualizeMenu(self.root, self.guest.secure_guest)
-        self.root.after(0, menu.update_image())
-        self.root.mainloop()
+        try:
+            self.root.after(0, menu.update_image())
+            self.root.mainloop()
+        finally:
+            menu.decoder.close()
 
     def password_menu(self):
         """ Runs tkinter password window """
@@ -98,8 +101,9 @@ def handle_hosting(db, skt, server_ip, lock):
             else:
                 host.message_server(host.protocol('retry', '0'))
     if host_mode:
-        ip, port = host.get_guest()
-        encoder = ScreenEncode(f'udp://{ip}:{port-1}')
+        host.connected()
+        ip = host.get_guest()
+        encoder = ScreenEncode(f'udp://{ip}:{host.client_port-1}')
         encoder.run_encoder()
         try:
             while True:

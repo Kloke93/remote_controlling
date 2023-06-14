@@ -184,6 +184,7 @@ class Server:
                             elif command == "CONNECT":
                                 messages.append([guest, self.protocol(command, host.getpeername()[0], args[0])])
                             elif command == "CONNECTED":
+                                host.close()
                                 clients.remove(host)
 
                 # read from guest
@@ -198,14 +199,15 @@ class Server:
                         if not data:                # if data isn't valid
                             messages.append((guest, self.protocol('abort', "invalid protocol")))
                             messages.append((host, self.protocol('abort', "invalid protocol from the guest")))
-
-                        command = data[0]           # command in data
-                        args = data[1:]             # arguments of the command
-                        if command == "GUESTING":
-                            if args[0] == 'password':
-                                messages.append([host, self.protocol('guesting', args[0], args[1])])
-                        elif command == "CONNECTED":
-                            clients.remove(guest)
+                        else:
+                            command = data[0]           # command in data
+                            args = data[1:]             # arguments of the command
+                            if command == "GUESTING":
+                                if args[0] == 'password':
+                                    messages.append([host, self.protocol('guesting', args[0], args[1])])
+                            elif command == "CONNECTED":
+                                guest.close()
+                                clients.remove(guest)
 
                 # write
                 for msg in messages:
@@ -298,7 +300,9 @@ class Server:
         :return: if data is valid returns list with command and arguments, if not returns empty list
         """
         split = data.split()
-        if (split[0] not in Server.commands) or (data[-2:] != ';;'):
+        if data == "CONNECTED;;":
+            return ["CONNECTED"]
+        elif (split[0] not in Server.commands) or (data[-2:] != ';;'):
             return []
         elif split[0] == "PRESENT" and len(split) == 2 and len(split[1]) == Server.id_length + 2:
             return [split[0], split[1][:-2]]
