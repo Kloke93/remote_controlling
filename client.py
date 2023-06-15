@@ -100,6 +100,7 @@ class Client:
         # protocol:
         # COMMAND arg1 arg2 ... arg;;
         command = command.upper()
+        args = map(str, args)
         args = " ".join(args)
         if args:
             return f"{command} {args};;"

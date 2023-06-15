@@ -324,8 +324,12 @@ class Server:
         # protocol:
         # COMMAND arg1 arg2 ... arg;;
         command = command.upper()
+        args = map(str, args)
         args = " ".join(args)
-        return f"{command} {args};;"
+        if args:
+            return f"{command} {args};;"
+        else:
+            return f"{command};;"
 
 
 def main():

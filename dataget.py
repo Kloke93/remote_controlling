@@ -13,7 +13,7 @@ import time
 
 class InputMouse:
     """ class to gather all the mouse input over a tkinter window """
-    buttons = ('left', 'middle', 'left')    # translate buttons number to left middle and right
+    buttons = ('left', 'middle', 'right')    # translate buttons number to left middle and right
 
     def __init__(self, master: Tk):
         """
@@ -43,8 +43,7 @@ class InputMouse:
         """
         self.buttons_pressed += 1
         self.pos = (event.x, event.y)
-        print('a')
-        return self.pos + (InputMouse.buttons[event.num],)
+        return self.pos + (InputMouse.buttons[event.num-1],)
 
     def release(self, event):
         """
@@ -57,7 +56,7 @@ class InputMouse:
         """
         self.buttons_pressed -= 1
         self.pos = (event.x, event.y)
-        return self.pos + (InputMouse.buttons[event.num],)
+        return self.pos + (InputMouse.buttons[event.num-1],)
 
     def move(self, event):
         """

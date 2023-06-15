@@ -32,6 +32,7 @@ class InputMouseSend(InputMouse):
         x = data[0]
         y = data[1]
         button = data[2]
+        print(x, y, button)
         protocol_data = self.protocol("mousepress", x, y, button)
         self.skt.send(protocol_data.encode())
 
@@ -53,11 +54,12 @@ class InputMouseSend(InputMouse):
         then writes protocol over this data and finally sends it on socket
         """
         data = super().move(event)
-        x = data[0]
-        y = data[1]
-        if data is not None:
-            protocol_data = self.protocol("mousemove", x, y)
-            self.skt.send(protocol_data.encode())
+        if data:
+            x = data[0]
+            y = data[1]
+            if data is not None:
+                protocol_data = self.protocol("mousemove", x, y)
+                self.skt.send(protocol_data.encode())
 
     def scroll(self, event):
         """
@@ -83,8 +85,12 @@ class InputMouseSend(InputMouse):
         # protocol:
         # COMMAND arg1 arg2 ... arg;;
         command = command.upper()
+        args = map(str, args)
         args = " ".join(args)
-        return f"{command} {args};;"
+        if args:
+            return f"{command} {args};;"
+        else:
+            return f"{command};;"
 
 
 class InputKeySend(InputKeyBoard):
@@ -129,4 +135,7 @@ class InputKeySend(InputKeyBoard):
         # COMMAND arg1 arg2 ... arg;;
         command = command.upper()
         args = " ".join(args)
-        return f"{command} {args};;"
+        if args:
+            return f"{command} {args};;"
+        else:
+            return f"{command};;"
