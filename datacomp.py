@@ -64,10 +64,11 @@ class ScreenEncode(StreamEncode):
         Specifically made for screen sharing
         :param url: location of the encoded frames destination
         """
-        self.camera = VideoGather()
-        width = self.camera.monitor['width']
-        height = self.camera.monitor['height']
+        camera = VideoGather()
+        width = camera.monitor['width']
+        height = camera.monitor['height']
         super().__init__(width, height, url)
+        self.camera = camera
 
     def capture(self):
         """ Captures screen and sends it to ffmpeg through stdin """

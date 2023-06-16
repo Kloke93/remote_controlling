@@ -193,12 +193,12 @@ class VisualizeMenu:
 
     def update_image(self):
         """ Updates images that we are seeing """
-        sys.stdout.flush()
+        # sys.stdout.flush()
         image = self.decoder.read_stdout()
         image = Image.frombytes('RGB', (self.width, self.height), image)
         image = ImageTk.PhotoImage(image)
         self.displayer.configure(image=image)
-        self.displayer.update()
+        # self.displayer.update()
         self.master.after(1, self.update_image)
 
 
