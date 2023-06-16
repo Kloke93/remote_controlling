@@ -126,14 +126,14 @@ def create_secure_client(ip):
     # secured tcp socket
     tcp_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     secure_client = context.wrap_socket(tcp_client, server_hostname=ip)
-    return secure_client, context
+    return secure_client
 
 
 def main():
     """ Combines all the program functionalities and runs it"""
     server_ip = '127.0.0.1'
     db = DataBase()
-    skt, context = create_secure_client(server_ip)               # creates an SSL socket (SSL socket, SSL context)
+    skt = create_secure_client(server_ip)               # creates an SSL socket (SSL socket, SSL context)
     lock = threading.Lock()
     guest = ClientGuest(server_ip, db.get_id(), skt, lock)
     guest_handler = GuestMode(db, guest)

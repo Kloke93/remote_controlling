@@ -68,7 +68,7 @@ class Client:
         Initiates client communication sockets
         :param ip: servers ip
         :param user_id: unique id of the user
-        :param sock: socket descriptor to communicate with server (better if its over ssl)
+        :param sock: socket descriptor to communicate with server (over ssl)
         :param lock: threading lock to organize host and guest actions
         """
         self.id = user_id
@@ -254,8 +254,7 @@ class ClientHost(Client):
         self.connection_host = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.secure_connect = None         # SSL wrapped socket to establish a connection
         self.secure_host = None            # SSL wrapped socket when we already know the guest
-        self.messages = []
-        self.hosting_sockets = []          # sockets to communicate with guest
+        self.messages = []                 # messages to send to the server
 
         # hardware
         self.keyboard = UseKeyBoard()
@@ -312,13 +311,9 @@ class ClientHost(Client):
         return value
 
     def connect_host(self):
-        """ Connects to guest """
-        try:
-            while self.hosting_sockets[0] == self.secure_connect:
-                self.hosting()
-            return True
-        except socket.error:
-            return False
+        """ Connects host server to have a connection with a guest """
+        self.secure_host, _ = self.secure_connect.accept()
+        self.secure_host.setblocking(False)         # to handle guest messages
 
     def get_guest(self) -> str:
         """
@@ -336,45 +331,37 @@ class ClientHost(Client):
             self.secure_client.setblocking(False)
             self.connection_host.bind(('0.0.0.0', Client.client_port))             # accepts a connection from anyone
             self.connection_host.listen(ClientHost.listen_size)
-            self.connection_host.setblocking(False)
             self.secure_connect = self.context.wrap_socket(self.connection_host, server_side=True)
-            self.hosting_sockets.append(self.secure_connect)
         except socket.error as err:
             logging.critical(err)
 
     def hosting(self):
         """ Handles communication with a guest """
-        rlist, _, xlist = select.select(self.hosting_sockets, [], self.hosting_sockets)
+        rlist, _, xlist = select.select([self.secure_host], [], [self.secure_host])
         # exception
         for s in xlist:
             s.close()
             raise socket.error("Error in the host connection")
         # read
         for s in rlist:
-            # connect host to guest
-            if s is self.secure_connect:
-                self.secure_host, _ = self.secure_connect.accept()
-                self.hosting_sockets.remove(self.secure_connect)
-                self.hosting_sockets.append(self.secure_host)
             # communication with guest
-            else:
-                try:
-                    data = s.recv(Client.max_buffer).decode()
-                    print(data)
-                except ssl.SSLWantReadError:
-                    continue
+            try:
+                data = s.recv(Client.max_buffer).decode()
+                print(data)
+            except ssl.SSLWantReadError:
+                continue
 
-                if data == "":
-                    # disconnect
-                    self.secure_client.close()
+            if data == "":
+                # disconnect
+                self.secure_client.close()
 
-                messages = data.split(";;")        # separate between messages
-                for message in messages:
-                    message = self.valid_exct(message)
-                    if message:
-                        command = message[0]
-                        args = message[1:]
-                        self.handle_exct(command, *args)
+            messages = data.split(";;")        # separate between messages
+            for message in messages:
+                message = self.valid_exct(message)
+                if message:
+                    command = message[0]
+                    args = message[1:]
+                    self.handle_exct(command, *args)
 
     def handle_exct(self, command, *args):
         """
