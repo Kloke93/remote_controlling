@@ -74,6 +74,11 @@ class ScreenEncode(StreamEncode):
         """ Captures screen and sends it to ffmpeg through stdin """
         self.write_stdin(self.camera.get_frame())
 
+    def close(self):
+        """ Closes the ffmpeg process and mss clean up """
+        super().close()
+        self.camera.close()
+
 
 class StreamDecode:
     """ Decoding video stream from libx264 h264 to rawvideo rgb24 and from url to stdout """
@@ -125,13 +130,13 @@ class StreamDecode:
 def main():
     socket_url = "udp://127.0.0.1:5010"
     # socket_url = "udp://172.16.11.198:5010"
-    encode = ScreenEncode(socket_url)
-    encode.run_encoder()
+    encoder = ScreenEncode(socket_url)
+    encoder.run_encoder()
     try:
         while True:
-            encode.capture()
+            encoder.capture()
     finally:
-        encode.close()
+        encoder.close()
 
 
 if __name__ == "__main__":

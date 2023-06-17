@@ -90,14 +90,13 @@ class HostMode:
         :param server_ip: server's ip
         :param database: database with local id and password
         :param skt: socket to communicate with the server
-        :param lock: threading lock to handle multithreaded operations
+        :param lock: threading lock to handle multithreaded operations between socket from guest and host
         """
         self.db = database
         self.host = ClientHost(server_ip, self.db.get_id(), skt, lock)
         self.host.start_host()      # first present as a host
         self.host_mode = False
-        self.encoder = None         # = ScreenEncoder(...)
-        self.exit = threading.Event()       # event to exit capturing
+        self.exit_event = threading.Event()       # event to exit capturing
 
     def main_host(self):
         """ Puts host mode actions in order for a thread """
@@ -124,22 +123,26 @@ class HostMode:
         """ Handles communication with guest if host mode """
         if self.host_mode:
             self.host.connected()
-            ip = self.host.get_guest()
-            self.encoder = ScreenEncode(f'udp://{ip}:{self.host.client_port - 1}')
-            self.encoder.run_encoder()
+            thread = threading.Thread(target=self.thread_capture, name="CaptureThread")
             try:
-                thread = threading.Thread(target=self.thread_capture, name="CaptureThread")
                 thread.start()              # starts thread_capture
                 while True:
-                    self.host.hosting()
+                    if self.host.hosting():     # it returns true when the connection is terminated
+                        break
             finally:
-                self.exit.set()         # stop capturing
-                self.encoder.close()    # close encoder
+                self.exit_event.set()         # stop capturing
+                thread.join(1)                # thread should terminate immediately after exit_event is set
 
     def thread_capture(self):
         """ Until the connection is down, capture to an encoder """
-        while not self.exit:
-            self.encoder.capture()
+        ip = self.host.get_guest()
+        encoder = ScreenEncode(f'udp://{ip}:{self.host.client_port - 1}')
+        encoder.run_encoder()
+        try:
+            while not self.exit_event.is_set():
+                encoder.capture()
+        finally:
+            encoder.close()  # close encoder
 
 
 def create_secure_client(ip):

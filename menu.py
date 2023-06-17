@@ -198,8 +198,8 @@ class VisualizeMenu:
         image = Image.frombytes('RGB', (self.width, self.height), image)
         image = ImageTk.PhotoImage(image)
         self.displayer.configure(image=image)
-        # self.displayer.update()
-        self.master.after(1, self.update_image)
+        self.displayer.update()
+        self.master.after(5, self.update_image)
 
 
 def main():

@@ -336,7 +336,11 @@ class ClientHost(Client):
             logging.critical(err)
 
     def hosting(self):
-        """ Handles communication with a guest """
+        """
+        Handles communication with a guest
+        :return: returns if the connection with secure_host is terminated
+        """
+        is_terminated = False
         rlist, _, xlist = select.select([self.secure_host], [], [self.secure_host])
         # exception
         for s in xlist:
@@ -350,18 +354,20 @@ class ClientHost(Client):
                 print(data)
             except ssl.SSLWantReadError:
                 continue
-
+            print(data)
             if data == "":
                 # disconnect
-                self.secure_client.close()
-
-            messages = data.split(";;")        # separate between messages
-            for message in messages:
-                message = self.valid_exct(message)
-                if message:
-                    command = message[0]
-                    args = message[1:]
-                    self.handle_exct(command, *args)
+                self.secure_host.close()
+                is_terminated = True
+            else:
+                messages = data.split(";;")        # separate between messages
+                for message in messages:
+                    message = self.valid_exct(message)
+                    if message:
+                        command = message[0]
+                        args = message[1:]
+                        self.handle_exct(command, *args)
+            return is_terminated
 
     def handle_exct(self, command, *args):
         """
