@@ -366,7 +366,7 @@ class ClientHost(Client):
                     if message:
                         command = message[0]
                         args = message[1:]
-                        self.handle_exct(command, *args)
+                        self.handle_exct(command, *args)         # handle instruction
             return is_terminated
 
     def handle_exct(self, command, *args):
@@ -378,19 +378,32 @@ class ClientHost(Client):
         if command[:3] == 'KEY':
             command = command[3:]       # takes only the action in the command
             if command == 'PRESS':
-                self.keyboard.press(args[0])
+                key = args[0]
+                self.keyboard.press(key)
             else:           # command is RELEASE
-                self.keyboard.release(args[0])
+                key = args[0]
+                self.keyboard.release(key)
         else:               # command is a mouse command
             command = command[5:]       # takes only the action in the command
             if command == 'PRESS':
-                self.mouse.press(args[0], args[1], args[2])
+                x = int(args[0])
+                y = int(args[1])
+                button = args[2]
+                self.mouse.press(x, y, button)
             elif command == 'RELEASE':
-                self.mouse.release(args[0], args[1], args[2])
+                x = int(args[0])
+                y = int(args[1])
+                button = args[2]
+                self.mouse.release(x, y, button)
             elif command == 'MOVE':
-                self.mouse.move(args[0], args[1])
+                x = int(args[0])
+                y = int(args[1])
+                self.mouse.move(x, y)
             else:           # command is scroll
-                self.mouse.scroll(args[0], args[1], args[2])
+                delta = int(args[0])
+                x = int(args[1])
+                y = int(args[2])
+                self.mouse.scroll(delta, x, y)
 
     @staticmethod
     def valid_exct(instruction):

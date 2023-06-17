@@ -3,8 +3,7 @@ Author: Tomas Dal Farra
 Date: 29/05/2023
 Description: Module to execute data received for computer devices (monitor, keyboard and mouse)
 """
-import time
-
+from threading import Thread
 import pyautogui
 
 
@@ -32,7 +31,7 @@ class UseMouse:
     """ Execute commands in mouse """
 
     @staticmethod
-    def press(x, y, button):
+    def press(x: int, y: int, button):
         """
         presses a mouse button
         :param x: x position where the press happens
@@ -42,7 +41,7 @@ class UseMouse:
         pyautogui.mouseDown(x, y, button)
 
     @staticmethod
-    def release(x, y, button):
+    def release(x: int, y: int, button):
         """
         releases a mouse button
         :param x: x position where the release happens
@@ -52,7 +51,7 @@ class UseMouse:
         pyautogui.mouseUp(x, y, button)
 
     @staticmethod
-    def move(x, y):
+    def move(x: int, y: int):
         """
         Moves mouse cursor to an x y position
         :param x: x position to move
@@ -61,7 +60,7 @@ class UseMouse:
         pyautogui.moveTo(x, y)
 
     @staticmethod
-    def scroll(delta, x, y):
+    def scroll(delta, x: int, y: int):
         """
         Execute a scroll
         :param delta: Amount of scrolling to perform
@@ -72,8 +71,8 @@ class UseMouse:
 
 
 def main():
-    time.sleep(10)
-    pyautogui.write("test", interval=0.25)
+    mouse = UseMouse()
+    Thread(target=mouse.move, args=(0, 0)).start()
 
 
 if __name__ == "__main__":
