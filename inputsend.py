@@ -32,7 +32,6 @@ class InputMouseSend(InputMouse):
         x = data[0]
         y = data[1]
         button = data[2]
-        print(x, y, button)
         protocol_data = self.protocol("mousepress", x, y, button)
         self.skt.send(protocol_data.encode())
 

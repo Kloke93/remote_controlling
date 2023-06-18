@@ -354,13 +354,12 @@ class ClientHost(Client):
                 print(data)
             except ssl.SSLWantReadError:
                 continue
-            print(data)
             if data == "":
                 # disconnect
                 self.secure_host.close()
                 is_terminated = True
             else:
-                messages = data.split(";;")        # separate between messages
+                messages = data.split(";;")[:-1]        # separate between messages (last one is supposed to be empty)
                 for message in messages:
                     message = self.valid_exct(message)
                     if message:
@@ -413,7 +412,7 @@ class ClientHost(Client):
         :return: if data is valid returns list with command and arguments, if not returns empty list
         """
         split = instruction.split()
-        if split[0] not in ClientHost.exct_commands:
+        if not split or (split[0] not in ClientHost.exct_commands):
             return []
         elif (split[0] == 'MOUSEPRESS' or split[0] == 'MOUSERELEASE') and len(split) == 4:
             return split
