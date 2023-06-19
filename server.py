@@ -141,6 +141,9 @@ class Server:
     def __init__(self):
         """ initializes server tcp socket and tls context """
         # ssl context
+        if not (os.path.exists(Server.cert) and os.path.exists(Server.key)):
+            # if there is no certificate it creates one
+            cert_gen()
         self.context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         self.context.load_cert_chain(Server.cert, Server.key)
         # sockets
@@ -379,9 +382,7 @@ class Server:
 
 def main():
     server = Server()
-    if not (os.path.exists(server.cert) and os.path.exists(server.key)):
-        # if there is no certificate it creates one
-        cert_gen()
+
     server.run_server()
 
 
