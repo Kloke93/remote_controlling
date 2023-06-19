@@ -133,8 +133,8 @@ class Client:
             return [split[0], split[1], split[2][:-2]]
         elif split[0] == "RETRY" and len(split) == 2:
             return [split[0], split[1][:-2]]
-        elif split[0] == "RESOLUTION" and len(split) == 3:
-            return [split[0], split[1], split[2][:-2]]
+        elif split[0] == "RESOLUTION" and len(split) == 3 and split[1].isnumeric() and split[2][:-2].isnumeric():
+            return [split[0], int(split[1]), int(split[2][:-2])]
         else:
             return []
 
@@ -231,7 +231,8 @@ class ClientGuest(Client):
 
     def recv_resolution(self) -> tuple:
         """ Receives screen resolution from host """
-        resolution = self.secure_guest.recv(Client.max_buffer)
+        resolution = self.secure_guest.recv(Client.max_buffer).decode()
+        print(resolution)
         if resolution == "":
             return -1, -1       # close connection
         resolution = self.valid(resolution)
@@ -334,7 +335,7 @@ class ClientHost(Client):
         user32 = ctypes.windll.user32
         user32.SetProcessDPIAware()
         width, height = user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
-        self.secure_host.send(self.protocol("resolution", width, height))
+        self.secure_host.send(self.protocol("resolution", width, height).encode())
 
         self.secure_host.setblocking(False)         # to handle guest messages
 
