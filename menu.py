@@ -9,6 +9,7 @@ import cv2 as cv
 from inputsend import InputKeySend, InputMouseSend
 from datacomp import StreamDecode
 import socket
+import ctypes
 from PIL import ImageTk, Image
 
 
@@ -167,7 +168,7 @@ class DisconnectMenu(Menu):
         self.disconnect.grid(row=1, padx=padx, pady=pady)
 
 
-class VisualizeMenu:
+class VisualizeMenu(Menu):
     """ Class to see video stream """
 
     def __init__(self, master: Tk, sock: socket.socket, width=1920, height=1080):
@@ -177,8 +178,17 @@ class VisualizeMenu:
         :param width: video width
         :param height: video height
         """
-        self.master = master
-        self.master.geometry(f'{width}x{height}')
+        super().__init__(master)
+
+        user32 = ctypes.windll.user32
+        user32.SetProcessDPIAware()
+        # screen width and height
+        screensize = user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
+        if width == screensize[0] and height == screensize[1]:
+            self.master.attributes('-fullscreen', True)
+        else:
+            self.master.geometry(f'{width}x{height}')
+
         self.displayer = Label(self.master)
         self.displayer.pack()
         # sending events
@@ -207,12 +217,12 @@ def main():
     # MainMenu(root, 'abc123456789', 'messi123')
     # PasswordMenu(root)
     # DisconnectMenu(root)
-    menu = VisualizeMenu(root)
-    try:
-        root.after(0, menu.update_image)
-        root.mainloop()
-    finally:
-        menu.decoder.close()
+    # menu = VisualizeMenu(root)
+    # try:
+    #     root.after(0, menu.update_image)
+    #     root.mainloop()
+    # finally:
+    #     menu.decoder.close()
 
 
 if __name__ == "__main__":

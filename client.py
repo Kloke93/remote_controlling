@@ -10,6 +10,7 @@ import select
 from dataexct import UseKeyBoard, UseMouse
 from OpenSSL import crypto
 import os
+import ctypes
 
 
 def cert_gen():
@@ -61,7 +62,7 @@ class Client:
     server_port = 5010
     max_buffer = 256
     # available commands that arrive to client
-    commands = ["GUESTING", "REQUEST", "ABORT", "RETRY", "CONNECT"]
+    commands = ["GUESTING", "REQUEST", "ABORT", "RETRY", "CONNECT", "RESOLUTION"]
 
     def __init__(self, ip, user_id, sock, lock):
         """
@@ -132,6 +133,8 @@ class Client:
             return [split[0], split[1], split[2][:-2]]
         elif split[0] == "RETRY" and len(split) == 2:
             return [split[0], split[1][:-2]]
+        elif split[0] == "RESOLUTION" and len(split) == 3:
+            return [split[0], split[1], split[2][:-2]]
         else:
             return []
 
@@ -226,6 +229,19 @@ class ClientGuest(Client):
             return False
         # finally
 
+    def recv_resolution(self) -> tuple:
+        """ Receives screen resolution from host """
+        resolution = self.secure_guest.recv(Client.max_buffer)
+        if resolution == "":
+            return -1, -1       # close connection
+        resolution = self.valid(resolution)
+        if resolution and resolution[0] == "RESOLUTION":
+            width = resolution[1]
+            height = resolution[2]
+            return width, height
+        else:
+            return -1, -1       # close connection
+
 
 class ClientHost(Client):
     """ Client communications for host mode """
@@ -313,6 +329,13 @@ class ClientHost(Client):
     def connect_host(self):
         """ Connects host server to have a connection with a guest """
         self.secure_host, _ = self.secure_connect.accept()
+
+        # screen resolution to guest
+        user32 = ctypes.windll.user32
+        user32.SetProcessDPIAware()
+        width, height = user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
+        self.secure_host.send(self.protocol("resolution", width, height))
+
         self.secure_host.setblocking(False)         # to handle guest messages
 
     def get_guest(self) -> str:

@@ -54,12 +54,16 @@ class GuestMode:
 
     def visual_menu(self):
         """ Runs tkinter visualize menu """
-        menu = VisualizeMenu(self.root, self.guest.secure_guest, 1366, 768)
-        try:
-            self.root.after(0, menu.update_image())
-            self.root.mainloop()
-        finally:
-            menu.decoder.close()
+        width, height = self.guest.recv_resolution()
+        if width == -1 and height == -1:
+            self.guest.secure_guest.close()
+        else:
+            menu = VisualizeMenu(self.root, self.guest.secure_guest, width, height)
+            try:
+                self.root.after(0, menu.update_image())
+                self.root.mainloop()
+            finally:
+                menu.decoder.close()
 
     def password_menu(self):
         """ Runs tkinter password window """
