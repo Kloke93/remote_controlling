@@ -5,6 +5,7 @@ Description: Module to get all user input and screen output
 """
 from string import ascii_letters
 from tkinter import Tk
+from threading import Lock
 from mss import mss
 import numpy as np
 import cv2 as cv
@@ -22,6 +23,7 @@ class InputMouse:
         """
         self.master = master
         self.buttons_pressed = 0            # how many buttons are being pressed
+        self.lock = Lock()                  # threading lock to avoid buttons_pressed synchronization problems
         self.pos = (0, 0)                   # last mouse position (x, y)
         self.bind_window()
 
@@ -41,7 +43,8 @@ class InputMouse:
             y = y coordinate
         :return: a tuple with the event elements and translated num (x, y, button)
         """
-        self.buttons_pressed += 1
+        with self.lock:
+            self.buttons_pressed += 1
         self.pos = (event.x, event.y)
         return self.pos + (InputMouse.buttons[event.num-1],)
 
@@ -54,7 +57,8 @@ class InputMouse:
             y = y coordinate
         :return: a tuple with the event elements and translated num (x, y, button)
         """
-        self.buttons_pressed -= 1
+        with self.lock:
+            self.buttons_pressed -= 1
         self.pos = (event.x, event.y)
         return self.pos + (InputMouse.buttons[event.num-1],)
 
@@ -67,13 +71,19 @@ class InputMouse:
         :return: a tuple with the event elements (x, y)
         """
         # if there is a button pressed
-        if self.buttons_pressed:
-            event_pos = (event.x, event.y)
-            # if the difference in any of axis is more than 5 then it's far enough
-            is_far = abs(self.pos[0] - event_pos[0]) > 5 or abs(self.pos[0] - event_pos[0]) > 5
-            if self.buttons_pressed and is_far:
-                self.pos = event_pos
-                return event_pos
+        self.lock.acquire()
+        try:
+            if self.buttons_pressed:
+                self.lock.release()
+                event_pos = (event.x, event.y)
+                # if the difference in any of axis is more than 5 then it's far enough
+                is_far = abs(self.pos[0] - event_pos[0]) > 5 or abs(self.pos[0] - event_pos[0]) > 5
+                if self.buttons_pressed and is_far:
+                    self.pos = event_pos
+                    return event_pos
+        finally:
+            if self.lock.locked():
+                self.lock.release()
 
     @staticmethod
     def scroll(event):
