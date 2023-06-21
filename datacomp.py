@@ -103,13 +103,14 @@ class StreamDecode:
             .input(
                 self.url, format='h264'
             )
+            .setpts('PTS-STARTPTS')                                 # presentation time starts from 0
             .output(
                 'pipe:',  # output to stdout
                 format='rawvideo', pix_fmt='rgb24',                 # decoding format
-                tune='zerolatency', preset='ultrafast', crf='23',   # quality and speed to encode
+                # tune='zerolatency', preset='ultrafast', crf='23',   # quality and speed to encode
                 s=f'{self.width}x{self.height}'
             )
-            # if url is stdout so it opens the pipe
+            # if url is stdout it opens the pipe
             .run_async(pipe_stdin=(StreamDecode.standard_url == self.url), pipe_stdout=True)
         )
 
