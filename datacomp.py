@@ -103,7 +103,7 @@ class StreamDecode:
             .input(
                 self.url, format='h264'
             )
-            .setpts('PTS-STARTPTS')                                 # presentation time starts from 0
+            .setpts('N/(25*TB)')                             # set fixed rate of 35 frames per second (to empty buffer)
             .output(
                 'pipe:',  # output to stdout
                 format='rawvideo', pix_fmt='rgb24',                 # decoding format
