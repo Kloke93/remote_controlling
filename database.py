@@ -57,11 +57,8 @@ class DataBase:
         Gets the user unique id
         :return: id
         """
-        try:
-            self.lock.acquire(True)
+        with self.lock:
             self.c.execute("SELECT id FROM user")
-        finally:
-            self.lock.release()
         identifier = self.c.fetchone()[0]
         self.conn.commit()
         return identifier
@@ -71,22 +68,17 @@ class DataBase:
         Updates the password value in the database
         :param password: new password to set
         """
-        try:
-            self.lock.acquire(True)
+        with self.lock:
             self.c.execute("UPDATE user SET password = :password", {'password': password})
-        finally:
-            self.lock.release()
+        print(f'password updated to {password}')
 
     def get_password(self):
         """
         Gets the user password
         :return: the password
         """
-        try:
-            self.lock.acquire(True)
+        with self.lock:
             self.c.execute("SELECT password FROM user")
-        finally:
-            self.lock.release()
         password = self.c.fetchone()[0]
         self.conn.commit()
         return password

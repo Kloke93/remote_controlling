@@ -76,6 +76,7 @@ class GuestMode:
         """ Runs tkinter main window """
         menu = MainMenu(self.root, self.db.get_id(), self.db.get_password())
         menu.connect_to(self.connect_id_handler)
+        menu.update_to(self.db.update_password)
         self.root.mainloop()
         self.root = Tk()
 

@@ -94,7 +94,7 @@ class MainMenu(Menu):
         :param target: Target function of the button
         It is supposed to be targeted to some database updater from text in password entry
         """
-        self.up_password.configure(text="Update", command=target)
+        self.up_password.configure(text="Update", command=lambda: target(self.guest_password.get()))
 
     @staticmethod
     def character_limit(text: StringVar, lim):
